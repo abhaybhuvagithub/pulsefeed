@@ -173,12 +173,32 @@ async function loadNews() {
     $('#news-sources').innerHTML = `<button class="chip active" data-src="">All</button>` +
       sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
     renderNews();
-    // Home preview
-    $('#home-news').innerHTML = data.items.slice(0, 3).map(newsCard).join('');
+    renderHomeNews(data.items);
     if (data.failedFeeds?.length) $('#news-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
   } catch (e) {
     $('#news-list').innerHTML = `<p class="muted">Couldn't load news feeds (${esc(e.message)}). Check your internet connection and reload.</p>`;
   }
+}
+function renderHomeNews(items) {
+  if (!items.length) return;
+  // Ticker: top 3 headlines
+  $('#ticker').innerHTML = items.slice(0, 3)
+    .map(i => `<span>■ ${esc(i.title)}</span>`).join(' ');
+  // Featured pair under the hero
+  $('#home-featured').innerHTML = items.slice(0, 2).map(i => `
+    <a href="${esc(i.link)}" target="_blank" rel="noopener" style="color:inherit">
+      <span class="badge-src">${esc(i.source)}</span>
+      <h3>${esc(i.title)}</h3>
+      <span class="muted">${timeAgo(i.date)}</span>
+    </a>`).join('');
+  // Latest rail
+  $('#home-rail').innerHTML = items.slice(2, 11).map(i => `
+    <a class="rail-item" href="${esc(i.link)}" target="_blank" rel="noopener">
+      <div>
+        <h4>${esc(i.title)}</h4>
+        <div class="meta">${esc(i.source)} · ${timeAgo(i.date)}</div>
+      </div>
+    </a>`).join('');
 }
 const newsCard = i => `
   <a class="card clickable" href="${esc(i.link)}" target="_blank" rel="noopener" style="display:block; color:inherit">
@@ -217,7 +237,7 @@ async function loadAds() {
 function renderAds(cat) {
   const list = cat ? state.pkgs.filter(p => p.category === cat) : state.pkgs;
   $('#ad-grid').innerHTML = list.map(p => `
-    <div class="card">
+    <div class="ad-card">
       <div class="ad-cat-label">${esc(p.category)}</div>
       <h3>${esc(p.name)}</h3>
       <div class="price">$${p.price}<small>${esc(p.period)}</small></div>
