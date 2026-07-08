@@ -100,7 +100,52 @@ $('#qa-submit').onclick = async () => {
   loadQuestions();
 };
 let qaTimer;
-$('#qa-search').oninput = e => { clearTimeout(qaTimer); qaTimer = setTimeout(() => loadQuestions(e.target.value), 300); };
+$('#qa-search').oninput = e => {
+  clearTimeout(qaTimer);
+  qaTimer = setTimeout(() => {
+    if (state.qaTab === 'so') loadSO(e.target.value);
+    else loadQuestions(e.target.value);
+  }, 400);
+};
+
+// ---------- Stack Overflow tab ----------
+state.qaTab = 'community';
+state.soLoaded = false;
+
+$('#qa-tabs').onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  $$('#qa-tabs .chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  state.qaTab = c.dataset.qatab;
+  const isSO = state.qaTab === 'so';
+  $('#qa-list').classList.toggle('hidden', isSO);
+  $('#so-list').classList.toggle('hidden', !isSO);
+  $('#btn-ask').style.display = isSO ? 'none' : '';
+  $('#qa-form').classList.add('hidden');
+  $('#qa-search').placeholder = isSO
+    ? 'Search Stack Overflow… (live)'
+    : 'Search questions… (e.g. python, ===, borrow checker)';
+  if (isSO && !state.soLoaded) loadSO();
+};
+
+async function loadSO(q = '') {
+  $('#so-list').innerHTML = '<p class="muted">Loading from Stack Overflow…</p>';
+  try {
+    const data = await api('/api/so' + (q ? '?q=' + encodeURIComponent(q) : ''));
+    state.soLoaded = true;
+    $('#so-list').innerHTML = (data.items || []).map(x => `
+      <a class="card clickable q-item" href="${esc(x.link)}" target="_blank" rel="noopener" style="display:block; color:inherit">
+        <span class="badge-src">Stack Overflow</span>
+        <h3><span class="votes">▲ ${x.votes}</span>${x.title}</h3>
+        <div class="meta">
+          ${x.tags.slice(0, 4).map(t => `<span class="tag">${esc(t)}</span>`).join('')}
+          <span>${x.answers} answer${x.answers === 1 ? '' : 's'}${x.answered ? ' · ✓ answered' : ''} · ${(x.views || 0).toLocaleString()} views · by ${esc(x.author)} · ${timeAgo(x.createdAt)}</span>
+        </div>
+      </a>`).join('') || '<p class="muted">No results from Stack Overflow.</p>';
+  } catch (e) {
+    $('#so-list').innerHTML = `<p class="muted">Couldn't reach Stack Overflow (${esc(e.message)}). Try again shortly.</p>`;
+  }
+}
 
 // ---------- Forums ----------
 async function loadForums(cat = '') {
