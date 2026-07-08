@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CodeBlaze 🔥 — The Hottest Programming Hub</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <a class="logo" href="#home" data-nav="home">Code<span>Blaze</span> <em>🔥</em></a>
+    <nav class="nav">
+      <a href="#home" data-nav="home" class="active">Home</a>
+      <a href="#languages" data-nav="languages">Languages</a>
+      <a href="#qa" data-nav="qa">Q&amp;A</a>
+      <a href="#forums" data-nav="forums">Forums</a>
+      <a href="#news" data-nav="news">Tech News</a>
+      <a href="#advertise" data-nav="advertise" class="cta-link">Advertise</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- HOME -->
+  <section id="view-home" class="view">
+    <div class="hero">
+      <h1>The <span class="grad">Hottest</span> Programming Hub on the Web</h1>
+      <p>Tips &amp; tricks for every major language, community Q&amp;A, developer forums, and live tech news from the world's top feeds — all in one place.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" data-nav="languages">Explore Languages</button>
+        <button class="btn btn-ghost" data-nav="qa">Ask a Question</button>
+      </div>
+      <div class="stats">
+        <div><b id="stat-langs">13</b><span>Languages</span></div>
+        <div><b id="stat-questions">–</b><span>Questions</span></div>
+        <div><b id="stat-threads">–</b><span>Threads</span></div>
+        <div><b>7</b><span>Live News Feeds</span></div>
+      </div>
+    </div>
+
+    <h2 class="section-title">🔥 Trending on CodeBlaze</h2>
+    <div class="grid-3" id="home-trending"></div>
+
+    <h2 class="section-title">📰 Latest Tech News</h2>
+    <div class="grid-3" id="home-news"></div>
+  </section>
+
+  <!-- LANGUAGES -->
+  <section id="view-languages" class="view hidden">
+    <h1 class="section-title">Programming Languages — Knowledge, Tips &amp; Tricks</h1>
+    <p class="muted">Click any language for its cheat sheet: what it's used for, pro tips, and a signature snippet.</p>
+    <div class="grid-3" id="lang-grid"></div>
+    <div id="lang-detail" class="lang-detail hidden"></div>
+  </section>
+
+  <!-- Q&A -->
+  <section id="view-qa" class="view hidden">
+    <div class="split-head">
+      <h1 class="section-title">Questions &amp; Answers</h1>
+      <button class="btn btn-primary" id="btn-ask">+ Ask Question</button>
+    </div>
+    <input id="qa-search" class="input" placeholder="Search questions… (e.g. python, ===, borrow checker)" />
+    <div id="qa-form" class="card form hidden">
+      <h3>Ask a Question</h3>
+      <input class="input" id="qa-title" placeholder="Title — be specific" />
+      <textarea class="input" id="qa-body" rows="4" placeholder="Describe your problem, include code if helpful"></textarea>
+      <input class="input" id="qa-tags" placeholder="Tags, comma-separated (e.g. python, django)" />
+      <input class="input" id="qa-author" placeholder="Your name (optional)" />
+      <button class="btn btn-primary" id="qa-submit">Post Question</button>
+    </div>
+    <div id="qa-list"></div>
+  </section>
+
+  <!-- FORUMS -->
+  <section id="view-forums" class="view hidden">
+    <div class="split-head">
+      <h1 class="section-title">Developer Forums</h1>
+      <button class="btn btn-primary" id="btn-new-thread">+ New Thread</button>
+    </div>
+    <div class="chip-row" id="forum-cats">
+      <button class="chip active" data-cat="">All</button>
+      <button class="chip" data-cat="General">General</button>
+      <button class="chip" data-cat="Career">Career</button>
+      <button class="chip" data-cat="Learning">Learning</button>
+    </div>
+    <div id="thread-form" class="card form hidden">
+      <h3>Start a Thread</h3>
+      <input class="input" id="th-title" placeholder="Thread title" />
+      <select class="input" id="th-cat">
+        <option>General</option><option>Career</option><option>Learning</option>
+      </select>
+      <textarea class="input" id="th-body" rows="4" placeholder="What do you want to discuss?"></textarea>
+      <input class="input" id="th-author" placeholder="Your name (optional)" />
+      <button class="btn btn-primary" id="th-submit">Create Thread</button>
+    </div>
+    <div id="forum-list"></div>
+    <div id="thread-view" class="hidden"></div>
+  </section>
+
+  <!-- NEWS -->
+  <section id="view-news" class="view hidden">
+    <div class="split-head">
+      <h1 class="section-title">🌍 World Tech News — Live</h1>
+      <span class="muted" id="news-meta"></span>
+    </div>
+    <div class="chip-row" id="news-sources"></div>
+    <div id="news-list" class="grid-2"><p class="muted">Loading feeds…</p></div>
+  </section>
+
+  <!-- ADVERTISE -->
+  <section id="view-advertise" class="view hidden">
+    <h1 class="section-title">📣 Advertise With Us</h1>
+    <p class="muted">Reach millions of developers. Packages from <b>$100</b> to <b>$999</b>, organized by category.</p>
+    <div class="chip-row" id="ad-cats"></div>
+    <div class="grid-3" id="ad-grid"></div>
+    <div id="ad-form" class="card form hidden">
+      <h3 id="ad-form-title">Book a Package</h3>
+      <input class="input" id="ad-company" placeholder="Company name *" />
+      <input class="input" id="ad-email" type="email" placeholder="Work email *" />
+      <textarea class="input" id="ad-message" rows="3" placeholder="Tell us about your campaign (optional)"></textarea>
+      <button class="btn btn-primary" id="ad-submit">Send Inquiry</button>
+      <p class="muted" id="ad-result"></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <p>© 2026 CodeBlaze 🔥 — Built by developers, for developers. <a href="#advertise" data-nav="advertise">Advertise with us</a></p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
