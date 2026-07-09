@@ -1,4 +1,4 @@
-# CodeBlaze 🔥
+# CodeBlazeFeed 🔥
 
 The hottest programming hub: language tips & tricks, community Q&A, developer forums, live world tech news from popular RSS feeds, and an Advertise With Us section ($100–$999, category-wise).
 

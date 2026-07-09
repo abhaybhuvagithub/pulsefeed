@@ -1,7 +1,7 @@
 {
-  "name": "codeblaze",
-  "version": "1.0.0",
-  "description": "CodeBlaze - The hottest programming hub: tutorials, tips & tricks, Q&A, forums, and live tech news.",
+  "name": "codeblazefeed",
+  "version": "1.1.0",
+  "description": "CodeBlazeFeed - The hottest programming hub: tutorials, tips & tricks, Q&A, forums, and live tech news.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

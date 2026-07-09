@@ -286,4 +286,4 @@ app.get('/api/languages', (req, res) => {
 // SPA fallback
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-app.listen(PORT, () => console.log(`🔥 CodeBlaze running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`🔥 CodeBlazeFeed running at http://localhost:${PORT}`));
