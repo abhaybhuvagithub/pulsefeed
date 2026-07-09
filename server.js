@@ -100,7 +100,9 @@ const FEEDS = [
   { name: 'Wired', url: 'https://www.wired.com/feed/rss' },
   { name: 'freeCodeCamp', url: 'https://www.freecodecamp.org/news/rss/' },
   { name: 'GeeksforGeeks', url: 'https://www.geeksforgeeks.org/feed/' },
-  { name: 'TechGig', url: 'https://content.techgig.com/rssfeedstopstories.cms' }
+  { name: 'TechGig', url: 'https://content.techgig.com/rssfeedstopstories.cms' },
+  { name: 'Scaler', url: 'https://www.scaler.com/blog/feed/' },
+  { name: 'takeUforward', url: 'https://takeuforward.org/feed/' }
 ];
 
 let newsCache = { items: [], fetchedAt: 0 };
