@@ -19,7 +19,7 @@ Requires Node.js 18+.
 - **Languages** — knowledge cards for 13 languages (Python, JS, TS, Java, C++, Go, Rust, C#, PHP, Swift, Kotlin, SQL, Ruby) with tips, tricks, and snippets. Edit `data/languages.json` to add more.
 - **Q&A** — ask questions, post answers, upvote, search, tags. Persists to `data/questions.json`.
 - **Forums** — categories (General / Career / Learning), threads, replies, view counts. Persists to `data/threads.json`.
-- **Tech News** — live RSS from Hacker News, Dev.to, TechCrunch, The Verge, Ars Technica, Wired, freeCodeCamp. Cached 10 min. Edit `FEEDS` in `server.js` to add feeds.
+- **Tech News** — live RSS from 15 sources: Hacker News, Dev.to, TechCrunch, The Verge, Ars Technica, Wired, freeCodeCamp, GeeksforGeeks, TechGig, Scaler, takeUforward, MakeUseOf, Medium, Business Insider, and Gartner. Cached 10 min. Edit `FEEDS` in `server.js` to add feeds.
 - **Advertise** — 8 packages from $100 to $999 across Display, Newsletter, Q&A, Forums, News, Content, and Premium categories. Inquiries persist to `data/ad_inquiries.json`.
 - **Blaze — Agentic AI ad assistant** — a chat agent on the Advertise page that takes a campaign brief (goal + budget + optional target tag), scores every package against its own rules, recommends the best fit, then books it while enforcing placement rules (copy word/link limits, required language tag, creative requirements). Rules live in `AD_RULES` in `server.js`.
 - **Dark / light theme** — toggle in the top bar (🌙 / ☀️). Remembers your choice in `localStorage` and defaults to your OS preference. Theme is applied before first paint (no flash).

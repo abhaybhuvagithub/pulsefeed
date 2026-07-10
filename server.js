@@ -307,7 +307,12 @@ function validateBooking(pkg, campaign) {
 }
 
 // ---------- RSS news ----------
-const parser = new Parser({ timeout: 10000 });
+// Browser-like User-Agent so larger publishers (Medium, Business Insider,
+// Gartner, etc.) don't reject the default feed request.
+const parser = new Parser({
+  timeout: 12000,
+  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CodeBlazeFeedBot/1.0; +https://codeblaze-eng9.onrender.com)' }
+});
 const FEEDS = [
   { name: 'Hacker News', url: 'https://hnrss.org/frontpage' },
   { name: 'Dev.to', url: 'https://dev.to/feed' },
@@ -320,7 +325,10 @@ const FEEDS = [
   { name: 'TechGig', url: 'https://content.techgig.com/rssfeedstopstories.cms' },
   { name: 'Scaler', url: 'https://www.scaler.com/blog/feed/' },
   { name: 'takeUforward', url: 'https://takeuforward.org/feed/' },
-  { name: 'MakeUseOf', url: 'https://www.makeuseof.com/feed/' }
+  { name: 'MakeUseOf', url: 'https://www.makeuseof.com/feed/' },
+  { name: 'Medium', url: 'https://medium.com/feed/tag/programming' },
+  { name: 'Business Insider', url: 'https://www.businessinsider.com/rss' },
+  { name: 'Gartner', url: 'https://www.gartner.com/en/newsroom/rss' }
 ];
 
 let newsCache = { items: [], fetchedAt: 0 };
