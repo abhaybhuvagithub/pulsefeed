@@ -102,7 +102,8 @@ const FEEDS = [
   { name: 'GeeksforGeeks', url: 'https://www.geeksforgeeks.org/feed/' },
   { name: 'TechGig', url: 'https://content.techgig.com/rssfeedstopstories.cms' },
   { name: 'Scaler', url: 'https://www.scaler.com/blog/feed/' },
-  { name: 'takeUforward', url: 'https://takeuforward.org/feed/' }
+  { name: 'takeUforward', url: 'https://takeuforward.org/feed/' },
+  { name: 'MakeUseOf', url: 'https://www.makeuseof.com/feed/' }
 ];
 
 let newsCache = { items: [], fetchedAt: 0 };
