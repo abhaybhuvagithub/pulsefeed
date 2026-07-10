@@ -105,53 +105,28 @@ window.showLang = i => {
   d.scrollIntoView({ behavior: 'smooth' });
 };
 
-// ---------- Q&A ----------
-async function loadQuestions(q = '') {
-  state.questions = await api('/api/questions' + (q ? '?q=' + encodeURIComponent(q) : ''));
-  $('#stat-questions').textContent = state.questions.length;
-  $('#qa-list').innerHTML = state.questions.map(x => `
-    <div class="card q-item">
-      <h3><span class="votes">▲ ${x.votes}</span>${esc(x.title)}</h3>
-      <p class="muted">${esc(x.body)}</p>
-      <div class="meta">
-        ${x.tags.map(t => `<span class="tag">${esc(t)}</span>`).join('')}
-        <span>by ${esc(x.author)} · ${timeAgo(x.createdAt)} · ${x.answers.length} answer${x.answers.length===1?'':'s'}</span>
-        <button class="btn btn-ghost btn-sm" onclick="voteQ('${x.id}')">▲ Upvote</button>
-      </div>
-      ${x.answers.map(a => `
-        <div class="answer ${a.accepted ? 'accepted' : ''}">
-          ${a.accepted ? '<span class="accepted-badge">✓ ACCEPTED</span> ' : ''}
-          ${esc(a.body).replace(/`([^`]+)`/g, '<code>$1</code>')}
-          <div class="meta"><span>▲ ${a.votes} · ${esc(a.author)} · ${timeAgo(a.createdAt)}</span></div>
-        </div>`).join('')}
-      <div style="margin-top:12px; display:flex; gap:8px">
-        <input class="input" style="margin:0" id="ans-${x.id}" placeholder="Write an answer…" />
-        <button class="btn btn-primary btn-sm" onclick="postAnswer('${x.id}')">Answer</button>
-      </div>
-    </div>`).join('') || '<p class="muted">No questions match. Ask the first one!</p>';
+// ---------- Q&A + Forums (htmx-driven) ----------
+// Lists and write actions render server-side and are swapped in by htmx
+// (hx-* attributes in index.html). JS here only coordinates the tabs, the
+// search box, and toggling the "create" forms.
+
+// Home page needs question/thread counts + trending; the lists come from htmx.
+async function loadStats() {
+  try {
+    const [qs, ths] = await Promise.all([api('/api/questions'), api('/api/forums')]);
+    state.questions = qs;
+    $('#stat-questions').textContent = qs.length;
+    $('#stat-threads').textContent = ths.length;
+  } catch (e) {}
 }
-window.voteQ = async id => { await api(`/api/questions/${id}/vote`, { method: 'POST', body: '{}' }); loadQuestions($('#qa-search').value); };
-window.postAnswer = async id => {
-  const inp = $('#ans-' + id);
-  if (!inp.value.trim()) return;
-  await api(`/api/questions/${id}/answers`, { method: 'POST', body: JSON.stringify({ body: inp.value, author: 'you' }) });
-  loadQuestions($('#qa-search').value);
-};
 $('#btn-ask').onclick = () => $('#qa-form').classList.toggle('hidden');
-$('#qa-submit').onclick = async () => {
-  const title = $('#qa-title').value.trim(), body = $('#qa-body').value.trim();
-  if (!title || !body) return alert('Title and body are required.');
-  await api('/api/questions', { method: 'POST', body: JSON.stringify({ title, body, tags: $('#qa-tags').value, author: $('#qa-author').value || 'anonymous' }) });
-  $('#qa-form').classList.add('hidden');
-  ['#qa-title','#qa-body','#qa-tags'].forEach(s => $(s).value = '');
-  loadQuestions();
-};
 let qaTimer;
 $('#qa-search').oninput = e => {
   clearTimeout(qaTimer);
+  const v = e.target.value;
   qaTimer = setTimeout(() => {
-    if (state.qaTab === 'so') loadSO(e.target.value);
-    else loadQuestions(e.target.value);
+    if (state.qaTab === 'so') loadSO(v);
+    else htmx.ajax('GET', '/partials/questions' + (v ? '?q=' + encodeURIComponent(v) : ''), { target: '#qa-list', swap: 'innerHTML' });
   }, 400);
 };
 
@@ -195,61 +170,14 @@ async function loadSO(q = '') {
 }
 
 // ---------- Forums ----------
-async function loadForums(cat = '') {
-  const list = await api('/api/forums' + (cat ? '?category=' + encodeURIComponent(cat) : ''));
-  $('#stat-threads').textContent = list.length;
-  $('#thread-view').classList.add('hidden');
-  $('#forum-list').classList.remove('hidden');
-  $('#forum-list').innerHTML = list.map(t => `
-    <div class="card clickable q-item" onclick="openThread('${t.id}')">
-      <h3>${esc(t.title)}</h3>
-      <div class="meta">
-        <span class="tag">${esc(t.category)}</span>
-        <span>by ${esc(t.author)} · ${timeAgo(t.createdAt)} · 💬 ${t.replies} replies · 👁 ${t.views} views</span>
-      </div>
-    </div>`).join('') || '<p class="muted">No threads yet in this category.</p>';
-}
-window.openThread = async id => {
-  const t = await api('/api/forums/' + id);
-  $('#forum-list').classList.add('hidden');
-  const v = $('#thread-view');
-  v.classList.remove('hidden');
-  v.innerHTML = `
-    <button class="btn btn-ghost btn-sm" onclick="loadForums()">← Back to forums</button>
-    <div class="card" style="margin-top:12px">
-      <h2>${esc(t.title)}</h2>
-      <div class="meta"><span class="tag">${esc(t.category)}</span><span>👁 ${t.views} views</span></div>
-      ${t.posts.map(p => `
-        <div class="answer">
-          ${esc(p.body)}
-          <div class="meta"><span>${esc(p.author)} · ${timeAgo(p.createdAt)}</span></div>
-        </div>`).join('')}
-      <div style="margin-top:14px; display:flex; gap:8px">
-        <input class="input" style="margin:0" id="reply-inp" placeholder="Write a reply…" />
-        <button class="btn btn-primary btn-sm" onclick="postReply('${t.id}')">Reply</button>
-      </div>
-    </div>`;
-};
-window.postReply = async id => {
-  const inp = $('#reply-inp');
-  if (!inp.value.trim()) return;
-  await api(`/api/forums/${id}/posts`, { method: 'POST', body: JSON.stringify({ body: inp.value, author: 'you' }) });
-  openThread(id);
-};
 $('#btn-new-thread').onclick = () => $('#thread-form').classList.toggle('hidden');
-$('#th-submit').onclick = async () => {
-  const title = $('#th-title').value.trim(), body = $('#th-body').value.trim();
-  if (!title || !body) return alert('Title and body are required.');
-  await api('/api/forums', { method: 'POST', body: JSON.stringify({ title, body, category: $('#th-cat').value, author: $('#th-author').value || 'anonymous' }) });
-  $('#thread-form').classList.add('hidden');
-  ['#th-title','#th-body'].forEach(s => $(s).value = '');
-  loadForums();
-};
 $('#forum-cats').onclick = e => {
   const c = e.target.closest('.chip'); if (!c) return;
   $$('#forum-cats .chip').forEach(x => x.classList.remove('active'));
   c.classList.add('active');
-  loadForums(c.dataset.cat);
+  $('#thread-view').classList.add('hidden');
+  $('#forum-list').classList.remove('hidden');
+  htmx.ajax('GET', '/partials/forums' + (c.dataset.cat ? '?category=' + encodeURIComponent(c.dataset.cat) : ''), { target: '#forum-list', swap: 'innerHTML' });
 };
 
 // ---------- News ----------
@@ -391,22 +319,12 @@ function renderAds(cat) {
     </div>`).join('');
 }
 window.pickAd = id => {
-  state.adPkg = id;
   const p = state.pkgs.find(x => x.id === id);
+  $('#ad-package-id').value = id;                 // htmx form submits this hidden field
   $('#ad-form').classList.remove('hidden');
   $('#ad-form-title').textContent = `Book: ${p.name} — $${p.price}${p.period}`;
   $('#ad-result').textContent = '';
   $('#ad-form').scrollIntoView({ behavior: 'smooth' });
-};
-$('#ad-submit').onclick = async () => {
-  const company = $('#ad-company').value.trim(), email = $('#ad-email').value.trim();
-  if (!state.adPkg) return alert('Pick a package first.');
-  if (!company || !email) return alert('Company and email are required.');
-  try {
-    const r = await api('/api/ads/inquiries', { method: 'POST', body: JSON.stringify({ packageId: state.adPkg, company, email, message: $('#ad-message').value }) });
-    $('#ad-result').textContent = '✅ ' + r.note;
-    ['#ad-company','#ad-email','#ad-message'].forEach(s => $(s).value = '');
-  } catch (e) { $('#ad-result').textContent = '❌ ' + e.message; }
 };
 
 // ---------- Agentic Ad Assistant ("Blaze") ----------
@@ -726,7 +644,7 @@ async function loadVisits() {
 // ---------- Init ----------
 (async function init() {
   loadVisits();
-  await Promise.all([loadLanguages(), loadQuestions(), loadForums(), loadAds()]);
+  await Promise.all([loadLanguages(), loadStats(), loadAds()]);
   loadTrending();
   loadNews(); // background, also fills home preview
 })();

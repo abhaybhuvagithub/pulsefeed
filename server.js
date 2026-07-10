@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // htmx posts form-encoded data
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------- Email (Gmail SMTP) ----------
@@ -585,6 +586,157 @@ app.post('/api/visits', (req, res) => {
   visits.count += 1;
   save('visits', visits);
   res.json({ count: visits.count });
+});
+
+// ---------- htmx HTML-fragment partials ----------
+// These return HTML (not JSON) so htmx can swap them straight into the page.
+const escH = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const codeH = s => escH(s).replace(/`([^`]+)`/g, '<code>$1</code>');
+function ago(d) {
+  if (!d) return '';
+  const s = (Date.now() - new Date(d)) / 1000;
+  if (s < 3600) return Math.max(1, Math.floor(s / 60)) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+const sendHtml = (res, s) => res.type('html').send(s);
+const withReplies = t => threads.map(({ posts, ...rest }) => ({ ...rest, replies: Math.max(0, posts.length - 1) }));
+
+function questionsHTML(list) {
+  return list.map(x => `
+    <div class="card q-item" id="q-${x.id}">
+      <h3><span class="votes">▲ ${x.votes}</span>${escH(x.title)}</h3>
+      <p class="muted">${escH(x.body)}</p>
+      <div class="meta">
+        ${x.tags.map(t => `<span class="tag">${escH(t)}</span>`).join('')}
+        <span>by ${escH(x.author)} · ${ago(x.createdAt)} · ${x.answers.length} answer${x.answers.length === 1 ? '' : 's'}</span>
+        <button class="btn btn-ghost btn-sm" hx-post="/partials/questions/${x.id}/vote" hx-target="#qa-list" hx-swap="innerHTML">▲ Upvote</button>
+      </div>
+      ${x.answers.map(a => `
+        <div class="answer ${a.accepted ? 'accepted' : ''}">
+          ${a.accepted ? '<span class="accepted-badge">✓ ACCEPTED</span> ' : ''}${codeH(a.body)}
+          <div class="meta"><span>▲ ${a.votes} · ${escH(a.author)} · ${ago(a.createdAt)}</span></div>
+        </div>`).join('')}
+      <form hx-post="/partials/questions/${x.id}/answers" hx-target="#qa-list" hx-swap="innerHTML" hx-on::after-request="this.reset()" style="margin-top:12px; display:flex; gap:8px">
+        <input class="input" style="margin:0" name="body" placeholder="Write an answer…" required />
+        <button class="btn btn-primary btn-sm" type="submit">Answer</button>
+      </form>
+    </div>`).join('') || '<p class="muted">No questions match. Ask the first one!</p>';
+}
+
+function forumListHTML(list) {
+  return list.map(t => `
+    <div class="card clickable q-item" hx-get="/partials/forums/${t.id}" hx-target="#thread-view" hx-swap="innerHTML"
+         hx-on::after-request="document.getElementById('forum-list').classList.add('hidden');document.getElementById('thread-view').classList.remove('hidden')">
+      <h3>${escH(t.title)}</h3>
+      <div class="meta"><span class="tag">${escH(t.category)}</span><span>by ${escH(t.author)} · ${ago(t.createdAt)} · 💬 ${t.replies} replies · 👁 ${t.views} views</span></div>
+    </div>`).join('') || '<p class="muted">No threads yet in this category.</p>';
+}
+
+function threadHTML(t) {
+  return `
+    <button class="btn btn-ghost btn-sm" hx-get="/partials/forums" hx-target="#forum-list" hx-swap="innerHTML"
+            hx-on::after-request="document.getElementById('thread-view').classList.add('hidden');document.getElementById('forum-list').classList.remove('hidden')">← Back to forums</button>
+    <div class="card" style="margin-top:12px">
+      <h2>${escH(t.title)}</h2>
+      <div class="meta"><span class="tag">${escH(t.category)}</span><span>👁 ${t.views} views</span></div>
+      ${t.posts.map(p => `<div class="answer">${escH(p.body)}<div class="meta"><span>${escH(p.author)} · ${ago(p.createdAt)}</span></div></div>`).join('')}
+      <form hx-post="/partials/forums/${t.id}/posts" hx-target="#thread-view" hx-swap="innerHTML" hx-on::after-request="this.reset()" style="margin-top:14px; display:flex; gap:8px">
+        <input class="input" style="margin:0" name="body" placeholder="Write a reply…" required />
+        <button class="btn btn-primary btn-sm" type="submit">Reply</button>
+      </form>
+    </div>`;
+}
+
+// Q&A
+app.get('/partials/questions', (req, res) => {
+  const { q } = req.query;
+  let list = questions;
+  if (q) list = list.filter(x => (x.title + x.body).toLowerCase().includes(String(q).toLowerCase()));
+  sendHtml(res, questionsHTML(list));
+});
+app.post('/partials/questions', (req, res) => {
+  const { title, body, tags, author } = req.body || {};
+  if (title && body) {
+    questions.unshift({
+      id: uid(), title: String(title).slice(0, 200), body: String(body).slice(0, 5000),
+      tags: (Array.isArray(tags) ? tags : String(tags || '').split(',')).map(t => String(t).trim().toLowerCase()).filter(Boolean).slice(0, 5),
+      author: String(author || 'anonymous').slice(0, 40), votes: 0, answers: [], createdAt: new Date().toISOString()
+    });
+    save('questions', questions);
+  }
+  sendHtml(res, questionsHTML(questions));
+});
+app.post('/partials/questions/:id/answers', (req, res) => {
+  const qn = questions.find(x => x.id === req.params.id);
+  const { body, author } = req.body || {};
+  if (qn && body) {
+    qn.answers.push({ id: uid(), body: String(body).slice(0, 5000), author: String(author || 'you').slice(0, 40), votes: 0, accepted: false, createdAt: new Date().toISOString() });
+    save('questions', questions);
+  }
+  sendHtml(res, questionsHTML(questions));
+});
+app.post('/partials/questions/:id/vote', (req, res) => {
+  const qn = questions.find(x => x.id === req.params.id);
+  if (qn) { qn.votes += 1; save('questions', questions); }
+  sendHtml(res, questionsHTML(questions));
+});
+
+// Forums
+app.get('/partials/forums', (req, res) => {
+  const { category } = req.query;
+  let list = withReplies();
+  if (category) list = list.filter(t => t.category.toLowerCase() === String(category).toLowerCase());
+  sendHtml(res, forumListHTML(list));
+});
+app.get('/partials/forums/:id', (req, res) => {
+  const t = threads.find(x => x.id === req.params.id);
+  if (!t) return sendHtml(res, '<p class="muted">Thread not found.</p>');
+  t.views++; save('threads', threads);
+  sendHtml(res, threadHTML(t));
+});
+app.post('/partials/forums', (req, res) => {
+  const { title, body, category, author } = req.body || {};
+  if (title && body) {
+    threads.unshift({
+      id: uid(), title: String(title).slice(0, 200), category: String(category || 'General').slice(0, 40),
+      author: String(author || 'anonymous').slice(0, 40), createdAt: new Date().toISOString(), views: 0,
+      posts: [{ id: uid(), body: String(body).slice(0, 5000), author: String(author || 'anonymous').slice(0, 40), createdAt: new Date().toISOString() }]
+    });
+    save('threads', threads);
+  }
+  sendHtml(res, forumListHTML(withReplies()));
+});
+app.post('/partials/forums/:id/posts', (req, res) => {
+  const t = threads.find(x => x.id === req.params.id);
+  if (!t) return sendHtml(res, '<p class="muted">Thread not found.</p>');
+  const { body, author } = req.body || {};
+  if (body) {
+    t.posts.push({ id: uid(), body: String(body).slice(0, 5000), author: String(author || 'you').slice(0, 40), createdAt: new Date().toISOString() });
+    save('threads', threads);
+  }
+  sendHtml(res, threadHTML(t));
+});
+
+// Advertise inquiry (htmx manual booking form)
+app.post('/partials/ads/inquiries', async (req, res) => {
+  const { packageId, company, email, message } = req.body || {};
+  const pkg = AD_PACKAGES.find(p => p.id === packageId);
+  if (!pkg) return sendHtml(res, '<span class="assistant-warn">Please pick a package first.</span>');
+  if (!company || !email) return sendHtml(res, '<span class="assistant-warn">Company and work email are required.</span>');
+  const validation = validateBooking(pkg, { copy: message });
+  const inquiry = {
+    id: uid(), packageId, package: pkg.name, price: pkg.price, period: pkg.period,
+    company: String(company).slice(0, 100), email: String(email).slice(0, 100),
+    message: String(message || '').slice(0, 2000), copy: message ? String(message).slice(0, 2000) : undefined,
+    validation, createdAt: new Date().toISOString()
+  };
+  adInquiries.push(inquiry); save('ad_inquiries', adInquiries);
+  const emailResult = await sendBookingEmails(inquiry, pkg);
+  let out = `✅ Thanks ${escH(company)}! Your ${escH(pkg.name)} ($${pkg.price}${pkg.period}) request is in.` +
+    (emailResult.sent ? ` A confirmation was emailed to ${escH(email)}.` : ' Our team will confirm by email.');
+  if (validation.warnings.length) out += `<br><span class="assistant-warn">Please review:</span><ul>${validation.warnings.map(w => `<li>${escH(w)}</li>`).join('')}</ul>`;
+  sendHtml(res, out);
 });
 
 // SPA fallback

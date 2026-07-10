@@ -15,6 +15,7 @@
     } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
   })();
 </script>
+<script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
 </head>
 <body>
 
@@ -272,15 +273,15 @@
       <button class="chip" data-qatab="so">Stack Overflow · Live</button>
     </div>
     <input id="qa-search" class="input" placeholder="Search questions… (e.g. python, ===, borrow checker)" />
-    <div id="qa-form" class="card form hidden">
+    <form id="qa-form" class="card form hidden" hx-post="/partials/questions" hx-target="#qa-list" hx-swap="innerHTML" hx-on::after-request="this.reset(); this.classList.add('hidden')">
       <h3>Ask a Question</h3>
-      <input class="input" id="qa-title" placeholder="Title — be specific" />
-      <textarea class="input" id="qa-body" rows="4" placeholder="Describe your problem, include code if helpful"></textarea>
-      <input class="input" id="qa-tags" placeholder="Tags, comma-separated (e.g. python, django)" />
-      <input class="input" id="qa-author" placeholder="Your name (optional)" />
-      <button class="btn btn-primary" id="qa-submit">Post Question</button>
-    </div>
-    <div id="qa-list"></div>
+      <input class="input" name="title" placeholder="Title — be specific" required />
+      <textarea class="input" name="body" rows="4" placeholder="Describe your problem, include code if helpful" required></textarea>
+      <input class="input" name="tags" placeholder="Tags, comma-separated (e.g. python, django)" />
+      <input class="input" name="author" placeholder="Your name (optional)" />
+      <button class="btn btn-primary" type="submit">Post Question</button>
+    </form>
+    <div id="qa-list" hx-get="/partials/questions" hx-trigger="load" hx-swap="innerHTML"><p class="muted">Loading questions…</p></div>
     <div id="so-list" class="hidden"><p class="muted">Loading from Stack Overflow…</p></div>
   </section>
 
@@ -296,17 +297,17 @@
       <button class="chip" data-cat="Career">Career</button>
       <button class="chip" data-cat="Learning">Learning</button>
     </div>
-    <div id="thread-form" class="card form hidden">
+    <form id="thread-form" class="card form hidden" hx-post="/partials/forums" hx-target="#forum-list" hx-swap="innerHTML" hx-on::after-request="this.reset(); this.classList.add('hidden')">
       <h3>Start a Thread</h3>
-      <input class="input" id="th-title" placeholder="Thread title" />
-      <select class="input" id="th-cat">
+      <input class="input" name="title" placeholder="Thread title" required />
+      <select class="input" name="category">
         <option>General</option><option>Career</option><option>Learning</option>
       </select>
-      <textarea class="input" id="th-body" rows="4" placeholder="What do you want to discuss?"></textarea>
-      <input class="input" id="th-author" placeholder="Your name (optional)" />
-      <button class="btn btn-primary" id="th-submit">Create Thread</button>
-    </div>
-    <div id="forum-list"></div>
+      <textarea class="input" name="body" rows="4" placeholder="What do you want to discuss?" required></textarea>
+      <input class="input" name="author" placeholder="Your name (optional)" />
+      <button class="btn btn-primary" type="submit">Create Thread</button>
+    </form>
+    <div id="forum-list" hx-get="/partials/forums" hx-trigger="load" hx-swap="innerHTML"><p class="muted">Loading threads…</p></div>
     <div id="thread-view" class="hidden"></div>
   </section>
 
@@ -348,14 +349,16 @@
     <h2 class="section-title" style="font-size:1.2rem">Or browse packages yourself</h2>
     <div class="chip-row" id="ad-cats"></div>
     <div class="grid-3" id="ad-grid"></div>
-    <div id="ad-form" class="card form hidden">
+    <form id="ad-form" class="card form hidden" hx-post="/partials/ads/inquiries" hx-target="#ad-result" hx-swap="innerHTML"
+          hx-on::after-request="['company','email','message'].forEach(n=>{const el=this.querySelector('[name='+n+']');if(el)el.value=''})">
       <h3 id="ad-form-title">Book a Package</h3>
-      <input class="input" id="ad-company" placeholder="Company name *" />
-      <input class="input" id="ad-email" type="email" placeholder="Work email *" />
-      <textarea class="input" id="ad-message" rows="3" placeholder="Tell us about your campaign (optional)"></textarea>
-      <button class="btn btn-primary" id="ad-submit">Send Inquiry</button>
+      <input type="hidden" name="packageId" id="ad-package-id" />
+      <input class="input" name="company" placeholder="Company name *" required />
+      <input class="input" name="email" type="email" placeholder="Work email *" required />
+      <textarea class="input" name="message" rows="3" placeholder="Tell us about your campaign (optional)"></textarea>
+      <button class="btn btn-primary" type="submit">Send Inquiry</button>
       <p class="muted" id="ad-result"></p>
-    </div>
+    </form>
   </section>
 
 </main>
