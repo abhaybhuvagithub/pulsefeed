@@ -302,6 +302,13 @@ code {
 :root[data-theme="light"] .tag,
 :root[data-theme="light"] .badge-src { text-shadow: none; }
 
+/* ---------- Subgroup heading (Home resource sections) ---------- */
+.subhead {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em;
+  color: var(--ink); margin: 28px 0 2px;
+}
+
 /* ---------- Tech News: topic categories ---------- */
 .chip-row-cats { margin-top: 14px; margin-bottom: 2px; }
 .chip-row-cats .chip { font-size: .82rem; padding: 7px 18px; }
