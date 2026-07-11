@@ -305,8 +305,10 @@
     </div>
     <div class="chip-row" id="qa-tabs">
       <button class="chip active" data-qatab="community">Community</button>
-      <button class="chip" data-qatab="so">Stack Overflow · Live</button>
+      <button class="chip" data-qatab="so">Stack Exchange · Live</button>
     </div>
+    <!-- Stack Exchange site picker (shown only on the Stack Exchange tab) -->
+    <div class="chip-row se-sites hidden" id="se-sites" aria-label="Stack Exchange sites"></div>
     <input id="qa-search" class="input" placeholder="Search questions… (e.g. python, ===, borrow checker)" />
     <form id="qa-form" class="card form hidden" hx-post="/partials/questions" hx-target="#qa-list" hx-swap="innerHTML" hx-on::after-request="this.reset(); this.classList.add('hidden')">
       <h3>Ask a Question</h3>

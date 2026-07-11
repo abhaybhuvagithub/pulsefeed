@@ -485,10 +485,24 @@ app.post('/api/forums/:id/posts', (req, res) => {
   res.status(201).json(post);
 });
 
-// ---------- Stack Overflow (Stack Exchange API) ----------
+// ---------- Stack Exchange network (Stack Overflow + sibling Q&A sites) ----------
 const SO_API = 'https://api.stackexchange.com/2.3';
 let soCache = {}; // key -> { data, fetchedAt }
 const SO_TTL = 10 * 60 * 1000;
+
+// Whitelisted Stack Exchange sites relevant to developers. Same API + shape for all.
+const SE_SITES = {
+  stackoverflow: 'Stack Overflow',
+  superuser: 'Super User',
+  serverfault: 'Server Fault',
+  askubuntu: 'Ask Ubuntu',
+  softwareengineering: 'Software Engineering',
+  codereview: 'Code Review',
+  unix: 'Unix & Linux',
+  devops: 'DevOps',
+  security: 'Information Security',
+  dba: 'Database Administrators'
+};
 
 function mapSoQuestion(q) {
   return {
@@ -505,31 +519,43 @@ function mapSoQuestion(q) {
   };
 }
 
+// List the available Stack Exchange sites (for the Q&A tab picker).
+app.get('/api/so/sites', (req, res) => {
+  res.json(Object.entries(SE_SITES).map(([id, name]) => ({ id, name })));
+});
+
 app.get('/api/so', async (req, res) => {
   const q = String(req.query.q || '').trim().slice(0, 100);
   const tag = String(req.query.tag || '').trim().slice(0, 40);
-  const key = `q=${q}|tag=${tag}`;
+  // Validate the requested site against the whitelist; default to Stack Overflow.
+  let site = String(req.query.site || 'stackoverflow').trim().toLowerCase();
+  if (!SE_SITES[site]) site = 'stackoverflow';
+  const key = `site=${site}|q=${q}|tag=${tag}`;
   try {
     const cached = soCache[key];
     if (cached && Date.now() - cached.fetchedAt < SO_TTL) return res.json(cached.data);
 
     let url;
     if (q) {
-      url = `${SO_API}/search/advanced?order=desc&sort=relevance&q=${encodeURIComponent(q)}&site=stackoverflow&pagesize=20&filter=default`;
+      url = `${SO_API}/search/advanced?order=desc&sort=relevance&q=${encodeURIComponent(q)}&site=${site}&pagesize=20&filter=default`;
     } else if (tag) {
-      url = `${SO_API}/questions?order=desc&sort=hot&tagged=${encodeURIComponent(tag)}&site=stackoverflow&pagesize=20`;
+      url = `${SO_API}/questions?order=desc&sort=hot&tagged=${encodeURIComponent(tag)}&site=${site}&pagesize=20`;
     } else {
-      url = `${SO_API}/questions?order=desc&sort=hot&site=stackoverflow&pagesize=20`;
+      url = `${SO_API}/questions?order=desc&sort=hot&site=${site}&pagesize=20`;
     }
     const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
     if (!r.ok) throw new Error(`Stack Exchange API returned ${r.status}`);
     const body = await r.json();
-    const data = { items: (body.items || []).map(mapSoQuestion), quotaRemaining: body.quota_remaining };
+    const data = {
+      site, siteName: SE_SITES[site],
+      items: (body.items || []).map(mapSoQuestion),
+      quotaRemaining: body.quota_remaining
+    };
     soCache[key] = { data, fetchedAt: Date.now() };
-    if (Object.keys(soCache).length > 50) soCache = { [key]: soCache[key] }; // crude cap
+    if (Object.keys(soCache).length > 80) soCache = { [key]: soCache[key] }; // crude cap
     res.json(data);
   } catch (e) {
-    res.status(502).json({ error: 'Failed to reach Stack Overflow', detail: e.message });
+    res.status(502).json({ error: `Failed to reach ${SE_SITES[site] || 'Stack Exchange'}`, detail: e.message });
   }
 });
 

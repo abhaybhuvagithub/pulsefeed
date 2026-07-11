@@ -209,6 +209,10 @@ h1, h2, h3, h4 { color: var(--ink); }
 }
 .chip:hover { border-color: var(--lime); color: var(--lime); }
 .chip.active:hover { color: #fff; }
+/* Secondary Stack Exchange site sub-picker */
+.se-sites { margin: 6px 0 6px; padding-left: 2px; }
+.se-sites .chip { font-size: .72rem; padding: 5px 13px; text-transform: none; letter-spacing: .01em; }
+.se-sites .chip.active { background: var(--magenta); box-shadow: 0 0 14px rgba(249,0,255,.4); }
 
 .form { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; margin: 20px 0; }
 .form h3 { font-weight: 900; margin-bottom: 14px; letter-spacing: -0.02em; }

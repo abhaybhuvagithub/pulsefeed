@@ -132,9 +132,42 @@ $('#qa-search').oninput = e => {
   }, 400);
 };
 
-// ---------- Stack Overflow tab ----------
+// ---------- Stack Exchange tab (Stack Overflow + sibling Q&A sites) ----------
 state.qaTab = 'community';
 state.soLoaded = false;
+state.soSite = 'stackoverflow';
+state.soSiteName = 'Stack Overflow';
+// Curated dev-relevant Stack Exchange sites; matches the server whitelist.
+const SE_SITES = [
+  { id: 'stackoverflow', label: 'Stack Overflow' },
+  { id: 'superuser', label: 'Super User' },
+  { id: 'serverfault', label: 'Server Fault' },
+  { id: 'askubuntu', label: 'Ask Ubuntu' },
+  { id: 'softwareengineering', label: 'Software Engineering' },
+  { id: 'codereview', label: 'Code Review' },
+  { id: 'unix', label: 'Unix & Linux' },
+  { id: 'devops', label: 'DevOps' },
+  { id: 'security', label: 'Information Security' },
+  { id: 'dba', label: 'Database Admins' }
+];
+
+// Render the Stack Exchange site sub-picker once.
+function buildSESites() {
+  const row = $('#se-sites');
+  if (!row || row.dataset.built) return;
+  row.innerHTML = SE_SITES.map(s =>
+    `<button class="chip${s.id === state.soSite ? ' active' : ''}" data-site="${s.id}">${esc(s.label)}</button>`).join('');
+  row.dataset.built = '1';
+  row.onclick = e => {
+    const c = e.target.closest('.chip'); if (!c) return;
+    $$('#se-sites .chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    state.soSite = c.dataset.site;
+    state.soSiteName = (SE_SITES.find(s => s.id === state.soSite) || {}).label || 'Stack Exchange';
+    $('#qa-search').placeholder = `Search ${state.soSiteName}… (live)`;
+    loadSO($('#qa-search').value.trim());
+  };
+}
 
 $('#qa-tabs').onclick = e => {
   const c = e.target.closest('.chip'); if (!c) return;
@@ -144,30 +177,36 @@ $('#qa-tabs').onclick = e => {
   const isSO = state.qaTab === 'so';
   $('#qa-list').classList.toggle('hidden', isSO);
   $('#so-list').classList.toggle('hidden', !isSO);
+  $('#se-sites').classList.toggle('hidden', !isSO);
   $('#btn-ask').style.display = isSO ? 'none' : '';
   $('#qa-form').classList.add('hidden');
   $('#qa-search').placeholder = isSO
-    ? 'Search Stack Overflow… (live)'
+    ? `Search ${state.soSiteName}… (live)`
     : 'Search questions… (e.g. python, ===, borrow checker)';
-  if (isSO && !state.soLoaded) loadSO();
+  if (isSO) { buildSESites(); if (!state.soLoaded) loadSO(); }
 };
 
 async function loadSO(q = '') {
-  $('#so-list').innerHTML = '<p class="muted">Loading from Stack Overflow…</p>';
+  const site = state.soSite, name = state.soSiteName;
+  $('#so-list').innerHTML = `<p class="muted">Loading from ${esc(name)}…</p>`;
   try {
-    const data = await api('/api/so' + (q ? '?q=' + encodeURIComponent(q) : ''));
+    const params = new URLSearchParams({ site });
+    if (q) params.set('q', q);
+    const data = await api('/api/so?' + params.toString());
+    if (state.soSite !== site) return; // user switched sites mid-request
     state.soLoaded = true;
+    const label = data.siteName || name;
     $('#so-list').innerHTML = (data.items || []).map(x => `
       <a class="card clickable q-item" href="${esc(x.link)}" target="_blank" rel="noopener" style="display:block; color:inherit">
-        <span class="badge-src">Stack Overflow</span>
-        <h3><span class="votes">▲ ${x.votes}</span>${x.title}</h3>
+        <span class="badge-src">${esc(label)}</span>
+        <h3><span class="votes">▲ ${x.votes}</span>${esc(x.title)}</h3>
         <div class="meta">
           ${x.tags.slice(0, 4).map(t => `<span class="tag">${esc(t)}</span>`).join('')}
           <span>${x.answers} answer${x.answers === 1 ? '' : 's'}${x.answered ? ' · ✓ answered' : ''} · ${(x.views || 0).toLocaleString()} views · by ${esc(x.author)} · ${timeAgo(x.createdAt)}</span>
         </div>
-      </a>`).join('') || '<p class="muted">No results from Stack Overflow.</p>';
+      </a>`).join('') || `<p class="muted">No results from ${esc(label)}.</p>`;
   } catch (e) {
-    $('#so-list').innerHTML = `<p class="muted">Couldn't reach Stack Overflow (${esc(e.message)}). Try again shortly.</p>`;
+    $('#so-list').innerHTML = `<p class="muted">Couldn't reach ${esc(name)} (${esc(e.message)}). Try again shortly.</p>`;
   }
 }
 
