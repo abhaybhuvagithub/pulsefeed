@@ -48,14 +48,16 @@
 <main class="container">
 
   <!-- SITE SEARCH (global, shown on every page) -->
-  <div class="site-search" id="site-search">
+  <div class="site-search" id="site-search" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-owns="site-search-results">
     <div class="site-search-box">
       <span class="site-search-icon" aria-hidden="true">🔍</span>
-      <input id="site-search-input" class="input" type="search" autocomplete="off"
+      <input id="site-search-input" class="input" type="search" autocomplete="off" spellcheck="false"
+        role="searchbox" aria-autocomplete="list" aria-controls="site-search-results" aria-activedescendant=""
         placeholder="Search CodeBlazeFeed — news, health, hospitality, Q&amp;A, resources…" aria-label="Search the site" />
+      <kbd class="site-search-kbd" id="site-search-kbd" aria-hidden="true">/</kbd>
       <button type="button" id="site-search-clear" class="site-search-clear hidden" aria-label="Clear search">✕</button>
     </div>
-    <div id="site-search-results" class="site-search-results hidden"></div>
+    <div id="site-search-results" class="site-search-results hidden" role="listbox" aria-label="Search results"></div>
   </div>
 
   <!-- HOME -->

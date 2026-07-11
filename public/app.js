@@ -1013,7 +1013,11 @@ $('#hosp-sources').onclick = e => {
   const input = document.getElementById('site-search-input');
   const resEl = document.getElementById('site-search-results');
   const clearBtn = document.getElementById('site-search-clear');
+  const kbd = document.getElementById('site-search-kbd');
   if (!box || !input || !resEl) return;
+
+  let activeIdx = -1;   // highlighted row for keyboard nav (-1 = none)
+  let lastQuery = '';
 
   const cache = {};
   async function jGet(url) {
@@ -1030,7 +1034,17 @@ $('#hosp-sources').onclick = e => {
       href: a.getAttribute('href')
     }));
   }
-  const matches = (q, ...parts) => parts.join(' ').toLowerCase().includes(q);
+  // Multi-term AND matching: every whitespace-separated term must appear.
+  const terms = q => q.split(/\s+/).filter(Boolean);
+  const matches = (ts, ...parts) => { const hay = parts.join(' ').toLowerCase(); return ts.every(t => hay.includes(t)); };
+  // Escape text, then wrap query terms in <mark>.
+  function hl(text, ts) {
+    const safe = esc(text);
+    if (!ts.length) return safe;
+    const rx = new RegExp('(' + ts.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+    return safe.replace(rx, '<mark class="ss-hl">$1</mark>');
+  }
+  const openHint = () => { if (kbd) kbd.textContent = document.activeElement === input ? 'esc' : '/'; };
 
   let timer = null;
   input.addEventListener('input', () => {
@@ -1038,46 +1052,119 @@ $('#hosp-sources').onclick = e => {
     clearTimeout(timer);
     const q = input.value.trim().toLowerCase();
     if (q.length < 2) { hide(); return; }
-    timer = setTimeout(() => run(q), 280);
+    // Instant skeleton feedback, debounced real query.
+    resEl.classList.remove('hidden'); box.setAttribute('aria-expanded', 'true');
+    if (q !== lastQuery) resEl.innerHTML = skeleton();
+    timer = setTimeout(() => run(q), 220);
   });
-  function hide() { resEl.classList.add('hidden'); resEl.innerHTML = ''; }
-  clearBtn.addEventListener('click', () => { input.value = ''; clearBtn.classList.add('hidden'); hide(); input.focus(); });
-  document.addEventListener('click', e => { if (!box.contains(e.target)) hide(); });
-  input.addEventListener('keydown', e => { if (e.key === 'Escape') { hide(); input.blur(); } });
+
+  function skeleton() {
+    return '<div class="ss-skel">' + Array.from({ length: 4 }, () =>
+      '<div class="ss-skel-row"><div class="ss-skel-line lg"></div><div class="ss-skel-line sm"></div></div>').join('') + '</div>';
+  }
+  function hide() {
+    resEl.classList.add('hidden'); resEl.innerHTML = '';
+    box.setAttribute('aria-expanded', 'false');
+    input.setAttribute('aria-activedescendant', '');
+    activeIdx = -1; lastQuery = '';
+  }
+  function reset() { input.value = ''; clearBtn.classList.add('hidden'); hide(); }
+
+  clearBtn.addEventListener('click', () => { reset(); input.focus(); });
+  document.addEventListener('click', e => { if (!box.contains(e.target)) { resEl.classList.add('hidden'); box.setAttribute('aria-expanded', 'false'); } });
+  input.addEventListener('focus', () => { openHint(); if (input.value.trim().length >= 2) run(input.value.trim().toLowerCase()); });
+  input.addEventListener('blur', () => { if (kbd) kbd.textContent = '/'; });
+
+  // "/" from anywhere (or ⌘K / Ctrl+K) focuses search; Escape clears/blurs.
+  document.addEventListener('keydown', e => {
+    const el = e.target, tag = (el.tagName || '').toLowerCase();
+    const typing = tag === 'input' || tag === 'textarea' || el.isContentEditable;
+    if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') || (e.key === '/' && !typing)) {
+      e.preventDefault(); input.focus(); input.select();
+    }
+  });
+
+  function items() { return [...resEl.querySelectorAll('.ss-item')]; }
+  function setActive(list, idx) {
+    list.forEach((el, i) => el.classList.toggle('active', i === idx));
+    activeIdx = idx;
+    if (idx >= 0 && list[idx]) {
+      list[idx].scrollIntoView({ block: 'nearest' });
+      input.setAttribute('aria-activedescendant', list[idx].id);
+    } else {
+      input.setAttribute('aria-activedescendant', '');
+    }
+  }
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { if (input.value) reset(); else input.blur(); return; }
+    const list = items();
+    if (!list.length) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive(list, (activeIdx + 1) % list.length); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(list, (activeIdx - 1 + list.length) % list.length); }
+    else if (e.key === 'Enter') {
+      const target = activeIdx >= 0 ? list[activeIdx] : list[0];
+      if (target) { e.preventDefault(); target.click(); }
+    }
+  });
+  // Hover syncs the keyboard highlight so mouse + keys don't fight.
+  resEl.addEventListener('mousemove', e => {
+    const it = e.target.closest('.ss-item'); if (!it) return;
+    const list = items(); const i = list.indexOf(it);
+    if (i !== activeIdx) setActive(list, i);
+  });
 
   async function run(q) {
-    resEl.classList.remove('hidden');
-    resEl.innerHTML = '<div class="ss-loading">Searching…</div>';
+    lastQuery = q;
+    const ts = terms(q);
     const [news, health, hosp, qs, forums] = await Promise.all([
       jGet('/api/news'), jGet('/api/health-news'), jGet('/api/hospitality-news'), jGet('/api/questions'), jGet('/api/forums')
     ]);
-    const feed = (data, g) => ((data && data.items) || []).filter(i => matches(q, i.title, i.snippet || '')).slice(0, 5)
+    if (input.value.trim().toLowerCase() !== q) return; // superseded by a newer keystroke
+    const feed = data => ((data && data.items) || []).filter(i => matches(ts, i.title, i.snippet || '')).slice(0, 5)
       .map(i => ({ title: i.title, sub: i.source, href: i.link, ext: true }));
     const groups = [
-      { name: 'Resources', icon: '🔗', items: resourceCards().filter(r => matches(q, r.title, r.desc)).slice(0, 6)
-        .map(r => ({ title: r.title, sub: r.desc.slice(0, 60), href: r.href, ext: true })) },
-      { name: 'Tech News', icon: '📡', items: feed(news, 'news') },
-      { name: 'Health', icon: '🩺', items: feed(health, 'health') },
-      { name: 'Hospitality', icon: '🏨', items: feed(hosp, 'hosp') },
-      { name: 'Q&A', icon: '💬', items: (qs || []).filter(x => matches(q, x.title, x.body)).slice(0, 5)
+      { name: 'Resources', icon: '🔗', items: resourceCards().filter(r => matches(ts, r.title, r.desc)).slice(0, 6)
+        .map(r => ({ title: r.title, sub: r.desc.slice(0, 70), href: r.href, ext: true })) },
+      { name: 'Tech News', icon: '📡', items: feed(news) },
+      { name: 'Health', icon: '🩺', items: feed(health) },
+      { name: 'Hospitality', icon: '🏨', items: feed(hosp) },
+      { name: 'Q&A', icon: '💬', items: (qs || []).filter(x => matches(ts, x.title, x.body)).slice(0, 5)
         .map(x => ({ title: x.title, sub: '▲ ' + x.votes + ' · ' + x.answers.length + ' answers', navTo: 'qa' })) },
-      { name: 'Forums', icon: '🗣️', items: (forums || []).filter(t => matches(q, t.title, t.category)).slice(0, 5)
+      { name: 'Forums', icon: '🗣️', items: (forums || []).filter(t => matches(ts, t.title, t.category)).slice(0, 5)
         .map(t => ({ title: t.title, sub: t.category, navTo: 'forums' })) },
-      { name: 'Languages', icon: '💻', items: (state.languages || []).filter(l => matches(q, l.name, l.tagline, (l.usedFor || []).join(' '))).slice(0, 6)
+      { name: 'Languages', icon: '💻', items: (state.languages || []).filter(l => matches(ts, l.name, l.tagline, (l.usedFor || []).join(' '))).slice(0, 6)
         .map(l => ({ title: (l.icon || '') + ' ' + l.name, sub: l.tagline, navTo: 'languages' })) }
     ].filter(g => g.items.length);
 
-    if (input.value.trim().toLowerCase() !== q) return; // superseded by newer keystroke
-    if (!groups.length) { resEl.innerHTML = `<div class="ss-empty">No matches for “${esc(input.value)}”.</div>`; return; }
+    resEl.classList.remove('hidden'); box.setAttribute('aria-expanded', 'true');
+    activeIdx = -1; input.setAttribute('aria-activedescendant', '');
+    if (!groups.length) {
+      resEl.innerHTML = `<div class="ss-empty"><div class="ss-empty-ico">🔍</div>No matches for “${esc(input.value.trim())}”.<div class="ss-empty-sub">Try a language, topic, or fewer words.</div></div>`;
+      return;
+    }
+    const total = groups.reduce((n, g) => n + g.items.length, 0);
+    let idx = 0;
     resEl.innerHTML = groups.map(g => `
       <div class="ss-group">
-        <div class="ss-group-head">${g.icon} ${g.name}</div>
-        ${g.items.map(it => it.ext
-          ? `<a class="ss-item" href="${esc(it.href)}" target="_blank" rel="noopener"><span class="ss-title">${esc(it.title)}</span><span class="ss-sub">${esc(it.sub || '')}</span></a>`
-          : `<a class="ss-item" href="#${it.navTo}" data-nav="${it.navTo}"><span class="ss-title">${esc(it.title)}</span><span class="ss-sub">${esc(it.sub || '')}</span></a>`
-        ).join('')}
-      </div>`).join('');
+        <div class="ss-group-head"><span>${g.icon} ${g.name}</span><span class="ss-count">${g.items.length}</span></div>
+        ${g.items.map(it => {
+          const id = 'ss-opt-' + (idx++);
+          const attrs = it.ext
+            ? `href="${esc(it.href)}" target="_blank" rel="noopener"`
+            : `href="#${it.navTo}" data-nav="${it.navTo}"`;
+          return `<a class="ss-item" id="${id}" role="option" ${attrs}>
+            <span class="ss-title">${hl(it.title, ts)}</span>
+            <span class="ss-sub">${hl(it.sub || '', ts)}</span>
+            ${it.ext ? '<span class="ss-arrow" aria-hidden="true">↗</span>' : '<span class="ss-arrow" aria-hidden="true">→</span>'}
+          </a>`;
+        }).join('')}
+      </div>`).join('') +
+      `<div class="ss-foot">
+         <span class="ss-foot-keys"><kbd>↑</kbd><kbd>↓</kbd> navigate&nbsp; <kbd>↵</kbd> open&nbsp; <kbd>esc</kbd> close</span>
+         <span class="ss-foot-count">${total} result${total === 1 ? '' : 's'}</span>
+       </div>`;
   }
   // Internal results use data-nav (handled by the global nav handler); close the panel after.
-  resEl.addEventListener('click', e => { if (e.target.closest('[data-nav]')) { hide(); input.value = ''; clearBtn.classList.add('hidden'); } });
+  resEl.addEventListener('click', e => { if (e.target.closest('[data-nav]')) reset(); });
 })();
