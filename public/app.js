@@ -76,7 +76,7 @@ function closeMobileNav() {
   });
 })();
 
-const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', health: [], healthLoaded: false, healthFilter: '', adPkg: null };
+const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', health: [], healthLoaded: false, healthFilter: '', healthCategory: '', adPkg: null };
 
 // ---------- Languages ----------
 async function loadLanguages() {
@@ -286,6 +286,23 @@ $('#news-sources').onclick = e => {
 };
 
 // ---------- Health news ----------
+// Classify each health story into a topic from its title + snippet.
+const HEALTH_CAT_ORDER = ['Research & Discovery', 'Diseases & Conditions', 'Mental Health', 'Nutrition & Fitness', 'Medicine & Treatment', 'Public Health & Policy', 'General Health'];
+const HEALTH_CAT_ICON = { 'Research & Discovery': '🔬', 'Diseases & Conditions': '🩺', 'Mental Health': '🧠', 'Nutrition & Fitness': '🥗', 'Medicine & Treatment': '💊', 'Public Health & Policy': '🏛️', 'General Health': '❤️' };
+const HEALTH_CAT_RULES = [
+  ['Mental Health', /\b(mental health|anxiety|depress|psycholog|psychiatr|well-?being|burnout|mindful|\bptsd\b|suicid|loneliness|\bbrain\b)\b/i],
+  ['Nutrition & Fitness', /\b(nutrition|diet|dietary|food|eating|obesity|weight|exercise|fitness|workout|\bsleep\b|calorie|vitamin|supplement|protein|sugar)\b/i],
+  ['Diseases & Conditions', /\b(cancer|diabet|heart|cardio|stroke|alzheimer|dementia|covid|influenza|\bflu\b|virus|infection|disease|disorder|asthma|arthritis|hypertension|tumou?r|parasite|measles)\b/i],
+  ['Medicine & Treatment', /\b(drug|treatment|therap|medication|vaccine|surger|clinical trial|\bfda\b|approval|antibiotic|gene[- ]editing|transplant)\b/i],
+  ['Public Health & Policy', /\b(public health|policy|\bwho\b|\bcdc\b|outbreak|epidemic|pandemic|health ?care|insurance|medicaid|medicare|hospital|regulat|equity|access to care)\b/i],
+  ['Research & Discovery', /\b(stud(y|ies)|research|scientist|discover|finding|trial|experiment|breakthrough|evidence|linked to|may (help|reduce|cause))\b/i]
+];
+function healthCategory(i) {
+  const t = (i.title || '') + ' ' + (i.snippet || '');
+  for (const [cat, re] of HEALTH_CAT_RULES) if (re.test(t)) return cat;
+  return 'General Health';
+}
+
 async function loadHealth() {
   try {
     const data = await api('/api/health-news');
@@ -297,6 +314,9 @@ async function loadHealth() {
     const sources = [...new Set(data.items.map(i => i.source))];
     $('#health-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
       sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
+    const present = HEALTH_CAT_ORDER.filter(c => data.items.some(i => healthCategory(i) === c));
+    $('#health-cats').innerHTML = `<button class="chip active" data-cat="">All topics</button>` +
+      present.map(c => `<button class="chip" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
     renderHealth();
     if (data.failedFeeds?.length) $('#health-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
   } catch (e) {
@@ -304,14 +324,36 @@ async function loadHealth() {
   }
 }
 function renderHealth() {
-  const items = state.healthFilter ? state.health.filter(i => i.source === state.healthFilter) : state.health;
-  $('#health-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
+  let items = state.healthFilter ? state.health.filter(i => i.source === state.healthFilter) : state.health;
+  if (!items.length) { $('#health-list').innerHTML = '<p class="muted">No stories.</p>'; return; }
+  if (state.healthCategory) {
+    const list = items.filter(i => healthCategory(i) === state.healthCategory).slice(0, 60);
+    $('#health-list').innerHTML = list.length
+      ? `<div class="grid-2">${list.map(newsCard).join('')}</div>`
+      : '<p class="muted">No stories in this topic right now.</p>';
+    return;
+  }
+  const groups = {};
+  items.forEach(i => { (groups[healthCategory(i)] ||= []).push(i); });
+  const html = HEALTH_CAT_ORDER.filter(c => groups[c] && groups[c].length).map(c => `
+    <section class="news-cat-block">
+      <h2 class="news-cat-title">${HEALTH_CAT_ICON[c]} ${esc(c)} <span>${groups[c].length}</span></h2>
+      <div class="grid-2">${groups[c].slice(0, 12).map(newsCard).join('')}</div>
+    </section>`).join('');
+  $('#health-list').innerHTML = html || '<p class="muted">No stories.</p>';
 }
 $('#health-sources').onclick = e => {
   const c = e.target.closest('.chip'); if (!c) return;
   $$('#health-sources .chip').forEach(x => x.classList.remove('active'));
   c.classList.add('active');
   state.healthFilter = c.dataset.src;
+  renderHealth();
+};
+$('#health-cats').onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  $$('#health-cats .chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  state.healthCategory = c.dataset.cat;
   renderHealth();
 };
 $('#news-cats').onclick = e => {

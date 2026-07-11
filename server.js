@@ -337,15 +337,15 @@ const FEEDS = [
 // Top health & medical news sources (live RSS).
 const HEALTH_FEEDS = [
   { name: 'ScienceDaily Health', url: 'https://www.sciencedaily.com/rss/health_medicine.xml' },
-  { name: 'Medical News Today', url: 'https://www.medicalnewstoday.com/rss' },
-  { name: 'Harvard Health', url: 'https://www.health.harvard.edu/blog/feed' },
-  { name: 'WHO', url: 'https://www.who.int/rss-feeds/news-english.xml' },
-  { name: 'NPR Health', url: 'https://feeds.npr.org/1128/rss.xml' },
-  { name: 'STAT News', url: 'https://www.statnews.com/feed/' },
   { name: 'Medical Xpress', url: 'https://medicalxpress.com/rss-feed/' },
+  { name: 'NPR Health', url: 'https://feeds.npr.org/1128/rss.xml' },
   { name: 'KFF Health News', url: 'https://kffhealthnews.org/feed/' },
-  { name: 'Everyday Health', url: 'https://www.everydayhealth.com/rss/' },
-  { name: 'Healthline', url: 'https://www.healthline.com/rss/health-news' }
+  { name: 'STAT News', url: 'https://www.statnews.com/feed/' },
+  { name: 'WHO', url: 'https://www.who.int/rss-feeds/news-english.xml' },
+  { name: 'Healthline', url: 'https://www.healthline.com/rss/health-news' },
+  { name: 'Mayo Clinic', url: 'https://newsnetwork.mayoclinic.org/feed/' },
+  { name: 'MedlinePlus', url: 'https://medlineplus.gov/feeds/news_en.xml' },
+  { name: 'NIH Director', url: 'https://directorsblog.nih.gov/feed/' }
 ];
 
 const NEWS_TTL = 10 * 60 * 1000; // 10 minutes
