@@ -1006,3 +1006,78 @@ $('#hosp-sources').onclick = e => {
   if (hero) { hero.addEventListener('mouseenter', stop); hero.addEventListener('mouseleave', start); }
   start();
 })();
+
+// ---------- Global site search ----------
+(function initSiteSearch() {
+  const box = document.getElementById('site-search');
+  const input = document.getElementById('site-search-input');
+  const resEl = document.getElementById('site-search-results');
+  const clearBtn = document.getElementById('site-search-clear');
+  if (!box || !input || !resEl) return;
+
+  const cache = {};
+  async function jGet(url) {
+    const c = cache[url];
+    if (c && Date.now() - c.t < 5 * 60 * 1000) return c.d;
+    try { const d = await api(url); cache[url] = { t: Date.now(), d }; return d; }
+    catch (e) { return null; }
+  }
+  // Index the curated resource cards already in the DOM (Learn, Jobs, Home sections, Hospitality…).
+  function resourceCards() {
+    return [...document.querySelectorAll('a.card.clickable[href^="http"]')].map(a => ({
+      title: (a.querySelector('h3') || {}).textContent || '',
+      desc: (a.querySelector('p') || {}).textContent || '',
+      href: a.getAttribute('href')
+    }));
+  }
+  const matches = (q, ...parts) => parts.join(' ').toLowerCase().includes(q);
+
+  let timer = null;
+  input.addEventListener('input', () => {
+    clearBtn.classList.toggle('hidden', !input.value);
+    clearTimeout(timer);
+    const q = input.value.trim().toLowerCase();
+    if (q.length < 2) { hide(); return; }
+    timer = setTimeout(() => run(q), 280);
+  });
+  function hide() { resEl.classList.add('hidden'); resEl.innerHTML = ''; }
+  clearBtn.addEventListener('click', () => { input.value = ''; clearBtn.classList.add('hidden'); hide(); input.focus(); });
+  document.addEventListener('click', e => { if (!box.contains(e.target)) hide(); });
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') { hide(); input.blur(); } });
+
+  async function run(q) {
+    resEl.classList.remove('hidden');
+    resEl.innerHTML = '<div class="ss-loading">Searching…</div>';
+    const [news, health, hosp, qs, forums] = await Promise.all([
+      jGet('/api/news'), jGet('/api/health-news'), jGet('/api/hospitality-news'), jGet('/api/questions'), jGet('/api/forums')
+    ]);
+    const feed = (data, g) => ((data && data.items) || []).filter(i => matches(q, i.title, i.snippet || '')).slice(0, 5)
+      .map(i => ({ title: i.title, sub: i.source, href: i.link, ext: true }));
+    const groups = [
+      { name: 'Resources', icon: '🔗', items: resourceCards().filter(r => matches(q, r.title, r.desc)).slice(0, 6)
+        .map(r => ({ title: r.title, sub: r.desc.slice(0, 60), href: r.href, ext: true })) },
+      { name: 'Tech News', icon: '📡', items: feed(news, 'news') },
+      { name: 'Health', icon: '🩺', items: feed(health, 'health') },
+      { name: 'Hospitality', icon: '🏨', items: feed(hosp, 'hosp') },
+      { name: 'Q&A', icon: '💬', items: (qs || []).filter(x => matches(q, x.title, x.body)).slice(0, 5)
+        .map(x => ({ title: x.title, sub: '▲ ' + x.votes + ' · ' + x.answers.length + ' answers', navTo: 'qa' })) },
+      { name: 'Forums', icon: '🗣️', items: (forums || []).filter(t => matches(q, t.title, t.category)).slice(0, 5)
+        .map(t => ({ title: t.title, sub: t.category, navTo: 'forums' })) },
+      { name: 'Languages', icon: '💻', items: (state.languages || []).filter(l => matches(q, l.name, l.tagline, (l.usedFor || []).join(' '))).slice(0, 6)
+        .map(l => ({ title: (l.icon || '') + ' ' + l.name, sub: l.tagline, navTo: 'languages' })) }
+    ].filter(g => g.items.length);
+
+    if (input.value.trim().toLowerCase() !== q) return; // superseded by newer keystroke
+    if (!groups.length) { resEl.innerHTML = `<div class="ss-empty">No matches for “${esc(input.value)}”.</div>`; return; }
+    resEl.innerHTML = groups.map(g => `
+      <div class="ss-group">
+        <div class="ss-group-head">${g.icon} ${g.name}</div>
+        ${g.items.map(it => it.ext
+          ? `<a class="ss-item" href="${esc(it.href)}" target="_blank" rel="noopener"><span class="ss-title">${esc(it.title)}</span><span class="ss-sub">${esc(it.sub || '')}</span></a>`
+          : `<a class="ss-item" href="#${it.navTo}" data-nav="${it.navTo}"><span class="ss-title">${esc(it.title)}</span><span class="ss-sub">${esc(it.sub || '')}</span></a>`
+        ).join('')}
+      </div>`).join('');
+  }
+  // Internal results use data-nav (handled by the global nav handler); close the panel after.
+  resEl.addEventListener('click', e => { if (e.target.closest('[data-nav]')) { hide(); input.value = ''; clearBtn.classList.add('hidden'); } });
+})();

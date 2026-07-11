@@ -47,6 +47,17 @@
 
 <main class="container">
 
+  <!-- SITE SEARCH (global, shown on every page) -->
+  <div class="site-search" id="site-search">
+    <div class="site-search-box">
+      <span class="site-search-icon" aria-hidden="true">🔍</span>
+      <input id="site-search-input" class="input" type="search" autocomplete="off"
+        placeholder="Search CodeBlazeFeed — news, health, hospitality, Q&amp;A, resources…" aria-label="Search the site" />
+      <button type="button" id="site-search-clear" class="site-search-clear hidden" aria-label="Clear search">✕</button>
+    </div>
+    <div id="site-search-results" class="site-search-results hidden"></div>
+  </div>
+
   <!-- HOME -->
   <section id="view-home" class="view">
     <div class="home-top">
