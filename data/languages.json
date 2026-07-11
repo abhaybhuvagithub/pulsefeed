@@ -18,7 +18,29 @@
       "Prefer `pathlib.Path` over `os.path` for file operations.",
       "Virtual environments always: `python -m venv .venv`."
     ],
-    "snippet": "from collections import Counter\nwords = 'the quick the lazy the'.split()\nprint(Counter(words).most_common(1))  # [('the', 3)]"
+    "snippet": "from collections import Counter\nwords = 'the quick the lazy the'.split()\nprint(Counter(words).most_common(1))  # [('the', 3)]",
+    "links": [
+      {
+        "label": "Official Documentation",
+        "url": "https://docs.python.org/3/"
+      },
+      {
+        "label": "The Python Tutorial",
+        "url": "https://docs.python.org/3/tutorial/"
+      },
+      {
+        "label": "Real Python (guides)",
+        "url": "https://realpython.com/"
+      },
+      {
+        "label": "PyPI (package index)",
+        "url": "https://pypi.org/"
+      },
+      {
+        "label": "PEP 8 — Style Guide",
+        "url": "https://peps.python.org/pep-0008/"
+      }
+    ]
   },
   {
     "name": "JavaScript",
@@ -39,7 +61,29 @@
       "`structuredClone(obj)` deep-copies without JSON hacks.",
       "Debounce expensive event handlers (scroll, resize, input)."
     ],
-    "snippet": "const users = await Promise.all(\n  ids.map(id => fetch(`/api/users/${id}`).then(r => r.json()))\n);"
+    "snippet": "const users = await Promise.all(\n  ids.map(id => fetch(`/api/users/${id}`).then(r => r.json()))\n);",
+    "links": [
+      {
+        "label": "MDN JavaScript Guide",
+        "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript"
+      },
+      {
+        "label": "JavaScript.info",
+        "url": "https://javascript.info/"
+      },
+      {
+        "label": "Node.js Documentation",
+        "url": "https://nodejs.org/en/docs"
+      },
+      {
+        "label": "ECMAScript Spec (TC39)",
+        "url": "https://tc39.es/ecma262/"
+      },
+      {
+        "label": "Can I use…",
+        "url": "https://caniuse.com/"
+      }
+    ]
   },
   {
     "name": "TypeScript",
@@ -59,7 +103,29 @@
       "`as const` freezes literals into precise types.",
       "Let inference work — don't annotate what TS already knows."
     ],
-    "snippet": "type Result<T> =\n  | { ok: true; data: T }\n  | { ok: false; error: string };\n// exhaustive handling enforced by the compiler"
+    "snippet": "type Result<T> =\n  | { ok: true; data: T }\n  | { ok: false; error: string };\n// exhaustive handling enforced by the compiler",
+    "links": [
+      {
+        "label": "TypeScript Handbook",
+        "url": "https://www.typescriptlang.org/docs/handbook/intro.html"
+      },
+      {
+        "label": "TypeScript Docs",
+        "url": "https://www.typescriptlang.org/docs/"
+      },
+      {
+        "label": "TS Playground",
+        "url": "https://www.typescriptlang.org/play"
+      },
+      {
+        "label": "DefinitelyTyped",
+        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped"
+      },
+      {
+        "label": "Type Challenges",
+        "url": "https://github.com/type-challenges/type-challenges"
+      }
+    ]
   },
   {
     "name": "Java",
@@ -79,7 +145,29 @@
       "StringBuilder for loops that build strings.",
       "Try-with-resources auto-closes files and connections."
     ],
-    "snippet": "record User(String name, int age) {}\nvar adults = users.stream()\n    .filter(u -> u.age() >= 18)\n    .map(User::name)\n    .toList();"
+    "snippet": "record User(String name, int age) {}\nvar adults = users.stream()\n    .filter(u -> u.age() >= 18)\n    .map(User::name)\n    .toList();",
+    "links": [
+      {
+        "label": "Oracle Java Documentation",
+        "url": "https://docs.oracle.com/en/java/"
+      },
+      {
+        "label": "dev.java — Learn",
+        "url": "https://dev.java/learn/"
+      },
+      {
+        "label": "OpenJDK",
+        "url": "https://openjdk.org/"
+      },
+      {
+        "label": "Maven Central",
+        "url": "https://central.sonatype.com/"
+      },
+      {
+        "label": "Baeldung (tutorials)",
+        "url": "https://www.baeldung.com/"
+      }
+    ]
   },
   {
     "name": "C++",
@@ -99,7 +187,29 @@
       "Use `auto` for iterator types and lambdas.",
       "Range-based for loops: `for (const auto& item : items)`."
     ],
-    "snippet": "auto ptr = std::make_unique<Widget>();\nstd::ranges::sort(items, {}, &Item::price); // C++20 ranges"
+    "snippet": "auto ptr = std::make_unique<Widget>();\nstd::ranges::sort(items, {}, &Item::price); // C++20 ranges",
+    "links": [
+      {
+        "label": "cppreference.com",
+        "url": "https://en.cppreference.com/w/"
+      },
+      {
+        "label": "ISO C++ (isocpp.org)",
+        "url": "https://isocpp.org/"
+      },
+      {
+        "label": "C++ Core Guidelines",
+        "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines"
+      },
+      {
+        "label": "Compiler Explorer (godbolt)",
+        "url": "https://godbolt.org/"
+      },
+      {
+        "label": "learncpp.com",
+        "url": "https://www.learncpp.com/"
+      }
+    ]
   },
   {
     "name": "Go",
@@ -119,7 +229,29 @@
       "Table-driven tests are idiomatic and scale beautifully.",
       "`go fmt` and `go vet` before every commit."
     ],
-    "snippet": "results := make(chan string)\nfor _, url := range urls {\n    go func(u string) { results <- fetch(u) }(url)\n}"
+    "snippet": "results := make(chan string)\nfor _, url := range urls {\n    go func(u string) { results <- fetch(u) }(url)\n}",
+    "links": [
+      {
+        "label": "Go Documentation",
+        "url": "https://go.dev/doc/"
+      },
+      {
+        "label": "A Tour of Go",
+        "url": "https://go.dev/tour/"
+      },
+      {
+        "label": "Effective Go",
+        "url": "https://go.dev/doc/effective_go"
+      },
+      {
+        "label": "Go by Example",
+        "url": "https://gobyexample.com/"
+      },
+      {
+        "label": "pkg.go.dev",
+        "url": "https://pkg.go.dev/"
+      }
+    ]
   },
   {
     "name": "Rust",
@@ -139,7 +271,29 @@
       "`cargo clippy` teaches you idiomatic Rust as you code.",
       "Use `Option`/`Result` — there is no null, and that's the point."
     ],
-    "snippet": "let total: i32 = orders.iter()\n    .filter(|o| o.paid)\n    .map(|o| o.amount)\n    .sum();"
+    "snippet": "let total: i32 = orders.iter()\n    .filter(|o| o.paid)\n    .map(|o| o.amount)\n    .sum();",
+    "links": [
+      {
+        "label": "The Rust Book",
+        "url": "https://doc.rust-lang.org/book/"
+      },
+      {
+        "label": "Rust Documentation",
+        "url": "https://doc.rust-lang.org/"
+      },
+      {
+        "label": "Rust by Example",
+        "url": "https://doc.rust-lang.org/rust-by-example/"
+      },
+      {
+        "label": "crates.io",
+        "url": "https://crates.io/"
+      },
+      {
+        "label": "Rustlings (exercises)",
+        "url": "https://github.com/rust-lang/rustlings"
+      }
+    ]
   },
   {
     "name": "C#",
@@ -159,7 +313,29 @@
       "Null-conditional operators: `user?.Address?.City ?? \"Unknown\"`.",
       "String interpolation: `$\"Hello {name}, you are {age}\"`."
     ],
-    "snippet": "var topScores = players\n    .OrderByDescending(p => p.Score)\n    .Take(10)\n    .Select(p => $\"{p.Name}: {p.Score}\");"
+    "snippet": "var topScores = players\n    .OrderByDescending(p => p.Score)\n    .Take(10)\n    .Select(p => $\"{p.Name}: {p.Score}\");",
+    "links": [
+      {
+        "label": "C# Docs (Microsoft Learn)",
+        "url": "https://learn.microsoft.com/en-us/dotnet/csharp/"
+      },
+      {
+        "label": ".NET Documentation",
+        "url": "https://learn.microsoft.com/en-us/dotnet/"
+      },
+      {
+        "label": "C# Language Reference",
+        "url": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/"
+      },
+      {
+        "label": "NuGet Gallery",
+        "url": "https://www.nuget.org/"
+      },
+      {
+        "label": "Download .NET",
+        "url": "https://dotnet.microsoft.com/en-us/download"
+      }
+    ]
   },
   {
     "name": "PHP",
@@ -179,7 +355,29 @@
       "Match expressions (8.0+) beat switch: no fallthrough, returns values.",
       "Always use prepared statements — never concatenate SQL."
     ],
-    "snippet": "$status = match($code) {\n    200, 201 => 'success',\n    404 => 'not found',\n    default => 'error',\n};"
+    "snippet": "$status = match($code) {\n    200, 201 => 'success',\n    404 => 'not found',\n    default => 'error',\n};",
+    "links": [
+      {
+        "label": "PHP Manual",
+        "url": "https://www.php.net/manual/en/"
+      },
+      {
+        "label": "PHP The Right Way",
+        "url": "https://phptherightway.com/"
+      },
+      {
+        "label": "Composer",
+        "url": "https://getcomposer.org/"
+      },
+      {
+        "label": "Packagist",
+        "url": "https://packagist.org/"
+      },
+      {
+        "label": "Laravel Docs",
+        "url": "https://laravel.com/docs"
+      }
+    ]
   },
   {
     "name": "Swift",
@@ -199,7 +397,29 @@
       "`enum` with associated values models state elegantly.",
       "Use trailing closure syntax for readability."
     ],
-    "snippet": "guard let user = fetchUser(id) else { return }\nlet names = users.compactMap { $0.nickname }"
+    "snippet": "guard let user = fetchUser(id) else { return }\nlet names = users.compactMap { $0.nickname }",
+    "links": [
+      {
+        "label": "Swift.org",
+        "url": "https://www.swift.org/"
+      },
+      {
+        "label": "The Swift Programming Language",
+        "url": "https://docs.swift.org/swift-book/"
+      },
+      {
+        "label": "Apple Developer — Swift",
+        "url": "https://developer.apple.com/swift/"
+      },
+      {
+        "label": "Swift Package Index",
+        "url": "https://swiftpackageindex.com/"
+      },
+      {
+        "label": "Hacking with Swift",
+        "url": "https://www.hackingwithswift.com/"
+      }
+    ]
   },
   {
     "name": "Kotlin",
@@ -219,7 +439,29 @@
       "Coroutines make async code look synchronous.",
       "`when` expressions are exhaustive and expressive."
     ],
-    "snippet": "data class User(val name: String, val email: String?)\nval domain = user.email?.substringAfter(\"@\") ?: \"unknown\""
+    "snippet": "data class User(val name: String, val email: String?)\nval domain = user.email?.substringAfter(\"@\") ?: \"unknown\"",
+    "links": [
+      {
+        "label": "Kotlin Documentation",
+        "url": "https://kotlinlang.org/docs/home.html"
+      },
+      {
+        "label": "Kotlin Playground",
+        "url": "https://play.kotlinlang.org/"
+      },
+      {
+        "label": "Kotlin Koans",
+        "url": "https://play.kotlinlang.org/koans/"
+      },
+      {
+        "label": "Kotlin for Android",
+        "url": "https://developer.android.com/kotlin"
+      },
+      {
+        "label": "Kotlin GitHub",
+        "url": "https://github.com/JetBrains/kotlin"
+      }
+    ]
   },
   {
     "name": "SQL",
@@ -239,7 +481,29 @@
       "`COALESCE()` handles nulls in results gracefully.",
       "Never `SELECT *` in production code."
     ],
-    "snippet": "WITH ranked AS (\n  SELECT name, salary,\n    RANK() OVER (PARTITION BY dept ORDER BY salary DESC) r\n  FROM employees\n)\nSELECT * FROM ranked WHERE r <= 3;"
+    "snippet": "WITH ranked AS (\n  SELECT name, salary,\n    RANK() OVER (PARTITION BY dept ORDER BY salary DESC) r\n  FROM employees\n)\nSELECT * FROM ranked WHERE r <= 3;",
+    "links": [
+      {
+        "label": "PostgreSQL Docs",
+        "url": "https://www.postgresql.org/docs/"
+      },
+      {
+        "label": "Mode SQL Tutorial",
+        "url": "https://mode.com/sql-tutorial/"
+      },
+      {
+        "label": "SQLBolt (interactive)",
+        "url": "https://sqlbolt.com/"
+      },
+      {
+        "label": "W3Schools SQL",
+        "url": "https://www.w3schools.com/sql/"
+      },
+      {
+        "label": "Use The Index, Luke",
+        "url": "https://use-the-index-luke.com/"
+      }
+    ]
   },
   {
     "name": "Ruby",
@@ -259,7 +523,29 @@
       "`Enumerable` methods (`map`, `select`, `reduce`, `each_slice`) replace most loops.",
       "String interpolation over concatenation: `\"Hello #{name}\"`."
     ],
-    "snippet": "top = orders.select(&:paid)\n            .group_by(&:customer)\n            .transform_values { |o| o.sum(&:total) }"
+    "snippet": "top = orders.select(&:paid)\n            .group_by(&:customer)\n            .transform_values { |o| o.sum(&:total) }",
+    "links": [
+      {
+        "label": "Ruby Documentation",
+        "url": "https://www.ruby-lang.org/en/documentation/"
+      },
+      {
+        "label": "Ruby API Docs",
+        "url": "https://ruby-doc.org/"
+      },
+      {
+        "label": "Ruby Quickstart",
+        "url": "https://www.ruby-lang.org/en/documentation/quickstart/"
+      },
+      {
+        "label": "RubyGems",
+        "url": "https://rubygems.org/"
+      },
+      {
+        "label": "Rails Guides",
+        "url": "https://guides.rubyonrails.org/"
+      }
+    ]
   },
   {
     "name": "C (Embedded)",

@@ -631,3 +631,5 @@ a:focus:not(:focus-visible), button:focus:not(:focus-visible), input:focus:not(:
 .lang-link-label { font-weight: 700; font-size: .92rem; }
 .lang-link:hover .lang-link-label { color: var(--lime); }
 .lang-link-host { font-size: .74rem; color: var(--muted); }
+
+.card-foot { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: .74rem; color: var(--muted); font-weight: 600; }

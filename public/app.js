@@ -88,6 +88,7 @@ async function loadLanguages() {
       <h3>${l.icon} ${esc(l.name)}</h3>
       <p class="muted">${esc(l.tagline)}</p>
       <div class="meta">${l.usedFor.slice(0,3).map(u => `<span class="tag">${esc(u)}</span>`).join('')}</div>
+      ${(l.links && l.links.length) ? `<div class="card-foot">💡 ${l.tips.length} tips · 🔗 ${l.links.length} resources</div>` : ''}
     </div>`).join('');
 }
 window.showLang = i => {
