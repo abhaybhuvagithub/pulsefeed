@@ -500,3 +500,36 @@ code {
 .jdots span { display:inline-block; width:7px; height:7px; margin:0 2px; border-radius:50%; background: var(--jarvis); opacity:.6; animation: jarvis-pulse 1s infinite; }
 .jdots span:nth-child(2) { animation-delay:.2s; }
 .jdots span:nth-child(3) { animation-delay:.4s; }
+
+/* ---------- UI/UX polish ---------- */
+html { scroll-behavior: smooth; }
+.view:not(.hidden) { animation: viewIn .28s ease both; }
+@keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.section-title { scroll-margin-top: 84px; }
+
+/* Clear keyboard-focus rings (mouse users unaffected) */
+:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; border-radius: 4px; }
+a:focus:not(:focus-visible), button:focus:not(:focus-visible), input:focus:not(:focus-visible), select:focus:not(:focus-visible) { outline: none; }
+
+/* Smoother interactions */
+.chip, .btn, .card, .nav a, .ad-card, .theme-toggle { transition: all .18s ease; }
+.chip.active { transform: translateY(-1px); }
+.nav a { border-radius: 6px; }
+
+/* Back-to-top */
+.to-top {
+  position: fixed; left: 22px; bottom: 22px; z-index: 190;
+  width: 46px; height: 46px; border-radius: 50%; cursor: pointer; border: none;
+  background: var(--violet); color: #fff; font-size: 1.3rem; line-height: 1;
+  box-shadow: 0 6px 20px rgba(82,0,255,.4);
+  opacity: 0; transform: translateY(10px) scale(.9); pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease, background .15s ease;
+}
+.to-top.show { opacity: 1; transform: none; pointer-events: auto; }
+.to-top:hover { background: var(--lime); color: #0D0716; }
+@media (max-width: 480px) { .to-top { left: 14px; bottom: 14px; width: 42px; height: 42px; } }
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

@@ -750,8 +750,12 @@ async function loadVisits() {
   function pickVoice() {
     if (!('speechSynthesis' in window)) return;
     const vs = speechSynthesis.getVoices();
-    voice = vs.find(v => /en-GB/i.test(v.lang) && /male|daniel|arthur|george|oliver/i.test(v.name))
-      || vs.find(v => /Google UK English Male/i.test(v.name))
+    // Prefer an Indian-origin voice: Indian English first, then named Indian
+    // voices, then an Indian Hindi voice, before falling back to UK/US.
+    voice = vs.find(v => /en[-_]IN/i.test(v.lang) && /ravi|rishi|prabhat|hemant|male/i.test(v.name))
+      || vs.find(v => /en[-_]IN/i.test(v.lang))
+      || vs.find(v => /(rishi|ravi|veena|heera|aditi|kajal|india|indian)/i.test(v.name))
+      || vs.find(v => /hi[-_]IN/i.test(v.lang))
       || vs.find(v => /en-GB/i.test(v.lang))
       || vs.find(v => /en[-_]US/i.test(v.lang)) || vs[0] || null;
   }
@@ -762,7 +766,8 @@ async function loadVisits() {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       if (voice) u.voice = voice;
-      u.rate = 1.02; u.pitch = 0.9;
+      u.lang = (voice && voice.lang) || 'en-IN';   // hint Indian pronunciation
+      u.rate = 1.0; u.pitch = 0.95;
       u.onstart = () => orb.classList.add('jarvis-speaking');
       u.onend = () => orb.classList.remove('jarvis-speaking');
       speechSynthesis.speak(u);
@@ -896,4 +901,23 @@ async function loadVisits() {
     rec.onerror = () => { listening = false; micBtn.classList.remove('listening'); status('At your service.'); };
     rec.onresult = e => route(e.results[0][0].transcript);
   } else { micBtn.style.display = 'none'; }
+})();
+
+// ---------- UI/UX polish: back-to-top + Escape shortcuts ----------
+(function initUX() {
+  const toTop = document.getElementById('to-top');
+  if (toTop) {
+    const onScroll = () => toTop.classList.toggle('show', window.scrollY > 500);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  }
+  // Escape closes GARUDA, then the mobile menu.
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    const jp = document.getElementById('jarvis-panel');
+    if (jp && jp.classList.contains('open')) { jp.classList.remove('open'); try { speechSynthesis.cancel(); } catch (_) {} return; }
+    const nv = document.getElementById('site-nav');
+    if (nv && nv.classList.contains('open')) { nv.classList.remove('open'); const tg = document.getElementById('nav-toggle'); if (tg) tg.setAttribute('aria-expanded', 'false'); }
+  });
 })();
