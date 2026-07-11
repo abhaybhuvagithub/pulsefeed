@@ -784,69 +784,86 @@ async function loadVisits() {
   const topCats = (items, fn) => { const m = {}; items.forEach(i => { const c = fn(i); m[c] = (m[c] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
   const li = i => `<li><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a> <span class="muted">— ${esc(i.source)}</span></li>`;
 
-  async function brief() {
-    say('Right away, sir. Compiling your briefing…', 'Right away, sir.');
-    status('Scanning the feeds…');
-    try {
-      const [news, health, qs] = await Promise.all([jFetch('/api/news'), jFetch('/api/health-news'), jFetch('/api/questions')]);
-      const nItems = news.items || [], hItems = health.items || [];
-      const cats = topCats(nItems, newsCategory).slice(0, 3).map(([c, n]) => `${c} (${n})`);
-      const topQ = (qs || []).slice().sort((a, b) => b.votes - a.votes)[0];
-      const g = greeting();
-      const spoken = `${g} Here is your briefing. I am tracking ${nItems.length} technology stories and ${hItems.length} health stories. The most active topics are ${cats.join(', ') || 'various'}. Today's leading headline: ${(nItems[0] || {}).title || 'unavailable'}.`;
-      const html = `<strong>${g}</strong> Here's your briefing:<br><br>`
-        + `<b>📡 Tech</b> — ${nItems.length} stories · hottest: ${cats.join(', ') || '—'}<ul>${nItems.slice(0, 5).map(li).join('')}</ul>`
-        + `<b>🩺 Health</b> — ${hItems.length} stories<ul>${hItems.slice(0, 3).map(li).join('') || '<li class="muted">none</li>'}</ul>`
-        + `<b>💬 Community</b> — top question: "${esc(topQ ? topQ.title : '—')}" (${topQ ? topQ.votes : 0} votes)`;
-      say(html, spoken);
-    } catch (e) { say(`I'm afraid I couldn't reach the feeds, sir.`, 'I could not reach the feeds, sir.'); }
-    status('At your service.');
+  // Show a "thinking" bubble while a task runs, then replace it with the result.
+  function thinking() { return add('bot', '<span class="jdots"><span></span><span></span><span></span></span>'); }
+  async function run(statusText, worker, errMsg) {
+    const t = thinking(); status(statusText); orb.classList.add('jarvis-working');
+    try { const r = await worker(); t.remove(); say(r.html, r.spoken); }
+    catch (e) { t.remove(); say(errMsg || 'I could not complete that, sir.'); }
+    finally { status('At your service.'); orb.classList.remove('jarvis-working'); }
   }
-  async function newsTop() {
-    status('Fetching headlines…');
-    try { const d = await jFetch('/api/news'); const it = (d.items || []).slice(0, 6); say(`Top technology headlines, sir:<ul>${it.map(li).join('')}</ul>`, `The top headline is: ${(it[0] || {}).title || 'unavailable'}.`); }
-    catch (e) { say('The feeds are unreachable, sir.'); }
-    status('At your service.');
-  }
-  async function healthTop() {
-    status('Fetching health…');
-    try { const d = await jFetch('/api/health-news'); const it = (d.items || []).slice(0, 6); say(`Top health headlines, sir:<ul>${it.map(li).join('')}</ul>`, `The leading health story: ${(it[0] || {}).title || 'unavailable'}.`); }
-    catch (e) { say('The health feeds are unreachable, sir.'); }
-    status('At your service.');
-  }
-  async function trending() {
-    status('Checking the community…');
-    try { const qs = await jFetch('/api/questions'); const top = (qs || []).slice().sort((a, b) => b.votes - a.votes).slice(0, 5); say(`The most upvoted questions, sir:<ul>${top.map(q => `<li>${esc(q.title)} <span class="muted">▲ ${q.votes}</span></li>`).join('')}</ul>`, `The top question: ${(top[0] || {}).title || 'none yet'}.`); }
-    catch (e) { say('I could not reach the Q&A, sir.'); }
-    status('At your service.');
-  }
-  async function forumsTop() {
-    status('Checking the forums…');
-    try { const ts = await jFetch('/api/forums'); const top = (ts || []).slice().sort((a, b) => b.views - a.views).slice(0, 5); say(`The busiest forum threads, sir:<ul>${top.map(t => `<li>${esc(t.title)} <span class="muted">👁 ${t.views}</span></li>`).join('')}</ul>`, `The most viewed thread: ${(top[0] || {}).title || 'none'}.`); }
-    catch (e) { say('I could not reach the forums, sir.'); }
-    status('At your service.');
-  }
-  async function search(q) {
-    status('Searching the feeds…');
-    try {
-      const [news, health] = await Promise.all([jFetch('/api/news'), jFetch('/api/health-news')]);
-      const all = (news.items || []).concat(health.items || []);
-      const ql = q.toLowerCase();
-      const hits = all.filter(i => (i.title + ' ' + (i.snippet || '')).toLowerCase().includes(ql)).slice(0, 6);
-      if (hits.length) say(`Here's what I found on "${esc(q)}", sir:<ul>${hits.map(li).join('')}</ul>`, `I found ${hits.length} stories on ${q}.`);
-      else say(`I found nothing on "${esc(q)}" in today's feeds, sir. Try “brief me”, “top news”, “health”, or “trending”.`, `I found nothing on ${q}, sir.`);
-    } catch (e) { say('The search failed, sir.'); }
-    status('At your service.');
-  }
+
+  const brief = () => run('Scanning the feeds…', async () => {
+    const [news, health, qs] = await Promise.all([jFetch('/api/news'), jFetch('/api/health-news'), jFetch('/api/questions')]);
+    const nItems = news.items || [], hItems = health.items || [];
+    const cats = topCats(nItems, newsCategory).slice(0, 3).map(([c, n]) => `${c} (${n})`);
+    const hcats = topCats(hItems, healthCategory).slice(0, 2).map(([c]) => c);
+    const topQ = (qs || []).slice().sort((a, b) => b.votes - a.votes)[0];
+    const g = greeting();
+    const spoken = `${g} Here is your briefing. I am tracking ${nItems.length} technology stories and ${hItems.length} health stories. The most active topics are ${cats.join(', ') || 'various'}. Today's leading headline: ${(nItems[0] || {}).title || 'unavailable'}.`;
+    const html = `<strong>${g}</strong> Here's your briefing:<br><br>`
+      + `<b>📡 Tech</b> — ${nItems.length} stories · hottest: ${cats.join(', ') || '—'}<ul>${nItems.slice(0, 5).map(li).join('')}</ul>`
+      + `<b>🩺 Health</b> — ${hItems.length} stories${hcats.length ? ' · ' + hcats.join(', ') : ''}<ul>${hItems.slice(0, 3).map(li).join('') || '<li class="muted">none</li>'}</ul>`
+      + `<b>💬 Community</b> — top question: "${esc(topQ ? topQ.title : '—')}" (${topQ ? topQ.votes : 0} votes)<br>`
+      + `<span class="muted">Try “read in detail”, “health”, or “trending”.</span>`;
+    return { html, spoken };
+  }, 'I could not reach the feeds, sir.');
+
+  const newsTop = () => run('Fetching headlines…', async () => {
+    const d = await jFetch('/api/news'); const it = (d.items || []).slice(0, 6);
+    return { html: `Top technology headlines, sir:<ul>${it.map(li).join('')}</ul>`, spoken: `The top headline is: ${(it[0] || {}).title || 'unavailable'}.` };
+  }, 'The feeds are unreachable, sir.');
+
+  const healthTop = () => run('Fetching health…', async () => {
+    const d = await jFetch('/api/health-news'); const it = (d.items || []).slice(0, 6);
+    return { html: `Top health headlines, sir:<ul>${it.map(li).join('')}</ul>`, spoken: `The leading health story: ${(it[0] || {}).title || 'unavailable'}.` };
+  }, 'The health feeds are unreachable, sir.');
+
+  const readDetails = () => run('Reading the top stories…', async () => {
+    const d = await jFetch('/api/news'); const it = (d.items || []).slice(0, 3);
+    const html = `In detail, sir:<ul>${it.map(i => `<li><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a><br><span class="muted">${esc((i.snippet || '').slice(0, 170)) || 'No summary available.'}</span></li>`).join('')}</ul>`;
+    const spoken = it.map((i, n) => `Story ${n + 1}: ${i.title}. ${(i.snippet || '').slice(0, 140)}`).join(' ') || 'No stories available, sir.';
+    return { html, spoken };
+  }, 'The feeds are unreachable, sir.');
+
+  const trending = () => run('Checking the community…', async () => {
+    const qs = await jFetch('/api/questions'); const top = (qs || []).slice().sort((a, b) => b.votes - a.votes).slice(0, 5);
+    return { html: `The most upvoted questions, sir:<ul>${top.map(q => `<li>${esc(q.title)} <span class="muted">▲ ${q.votes}</span></li>`).join('')}</ul>`, spoken: `The top question: ${(top[0] || {}).title || 'none yet'}.` };
+  }, 'I could not reach the Q&A, sir.');
+
+  const forumsTop = () => run('Checking the forums…', async () => {
+    const ts = await jFetch('/api/forums'); const top = (ts || []).slice().sort((a, b) => b.views - a.views).slice(0, 5);
+    return { html: `The busiest forum threads, sir:<ul>${top.map(t => `<li>${esc(t.title)} <span class="muted">👁 ${t.views}</span></li>`).join('')}</ul>`, spoken: `The most viewed thread: ${(top[0] || {}).title || 'none'}.` };
+  }, 'I could not reach the forums, sir.');
+
+  const languagesInfo = () => run('Reviewing the languages…', async () => {
+    const langs = await jFetch('/api/languages'); const names = (langs || []).map(l => l.name);
+    return { html: `We cover <b>${names.length}</b> languages, sir:<br>${names.map(n => `<span class="jtag">${esc(n)}</span>`).join(' ')}`, spoken: `We cover ${names.length} languages, including ${names.slice(0, 5).join(', ')}.` };
+  }, 'I could not load the languages, sir.');
+
+  const search = (q) => run('Searching the feeds…', async () => {
+    const [news, health] = await Promise.all([jFetch('/api/news'), jFetch('/api/health-news')]);
+    const all = (news.items || []).concat(health.items || []);
+    const ql = q.toLowerCase();
+    const hits = all.filter(i => (i.title + ' ' + (i.snippet || '')).toLowerCase().includes(ql)).slice(0, 6);
+    if (hits.length) return { html: `Here's what I found on "${esc(q)}", sir:<ul>${hits.map(li).join('')}</ul>`, spoken: `I found ${hits.length} stories on ${q}.` };
+    return { html: `I found nothing on "${esc(q)}" in today's feeds, sir. Try “brief me”, “top news”, “health”, or “trending”.`, spoken: `I found nothing on ${q}, sir.` };
+  }, 'The search failed, sir.');
+
+  function stopSpeaking() { try { speechSynthesis.cancel(); } catch (e) {} orb.classList.remove('jarvis-speaking'); add('bot', 'Silenced, sir.'); }
+
   function help() {
-    say(`At your command, sir. I can:<ul><li><b>brief me</b> — a full rundown</li><li><b>top news</b> / <b>health</b> — latest headlines</li><li><b>trending</b> — hottest questions</li><li><b>forums</b> — busiest threads</li><li>or ask about a topic, e.g. <i>“anything on AI?”</i></li></ul>`, 'I can brief you, or report on news, health, trending questions, and the forums, sir.');
+    say(`At your command, sir. I can:<ul><li><b>brief me</b> — a full rundown</li><li><b>top news</b> / <b>health</b> — latest headlines</li><li><b>read in detail</b> — top stories with summaries</li><li><b>trending</b> — hottest questions · <b>forums</b> — busiest threads</li><li><b>languages</b> — what we cover</li><li>ask about a topic (<i>“anything on AI?”</i>) or say <b>stop</b> to silence me</li></ul>`, 'I can brief you, read stories in detail, and report on news, health, trending questions, forums, and languages, sir.');
   }
 
   function route(raw) {
     const q = (raw || '').trim(); if (!q) return;
     add('user', esc(q));
     const t = q.toLowerCase();
+    if (/\b(stop|silence|quiet|shush|shut up|enough)\b/.test(t)) return stopSpeaking();
     if (/\b(brief|briefing|report|overview|catch me up|rundown|what'?s (new|up|happening|going on)|good (morning|afternoon|evening)|status)\b/.test(t)) return brief();
+    if (/\b(read|in detail|details?|tell me more|more detail|elaborate|summar)\b/.test(t)) return readDetails();
+    if (/\b(language|languages)\b/.test(t)) return languagesInfo();
     if (/\b(health|medical|medicine|disease|wellness)\b/.test(t)) return healthTop();
     if (/\b(trend|question|q ?& ?a|q and a|upvot)\b/.test(t)) return trending();
     if (/\b(forum|thread|discuss)\b/.test(t)) return forumsTop();
