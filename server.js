@@ -334,11 +334,27 @@ const FEEDS = [
   { name: 'Gartner', url: 'https://www.gartner.com/en/newsroom/rss' }
 ];
 
-let newsCache = { items: [], fetchedAt: 0 };
-const NEWS_TTL = 10 * 60 * 1000; // 10 minutes
+// Top health & medical news sources (live RSS).
+const HEALTH_FEEDS = [
+  { name: 'ScienceDaily Health', url: 'https://www.sciencedaily.com/rss/health_medicine.xml' },
+  { name: 'Medical News Today', url: 'https://www.medicalnewstoday.com/rss' },
+  { name: 'Harvard Health', url: 'https://www.health.harvard.edu/blog/feed' },
+  { name: 'WHO', url: 'https://www.who.int/rss-feeds/news-english.xml' },
+  { name: 'NPR Health', url: 'https://feeds.npr.org/1128/rss.xml' },
+  { name: 'STAT News', url: 'https://www.statnews.com/feed/' },
+  { name: 'Medical Xpress', url: 'https://medicalxpress.com/rss-feed/' },
+  { name: 'KFF Health News', url: 'https://kffhealthnews.org/feed/' },
+  { name: 'Everyday Health', url: 'https://www.everydayhealth.com/rss/' },
+  { name: 'Healthline', url: 'https://www.healthline.com/rss/health-news' }
+];
 
-async function fetchNews() {
-  const results = await Promise.allSettled(FEEDS.map(async f => {
+const NEWS_TTL = 10 * 60 * 1000; // 10 minutes
+let newsCache = { items: [], fetchedAt: 0 };
+let healthCache = { items: [], fetchedAt: 0 };
+
+// Aggregate any list of feeds into a single, date-sorted item list.
+async function fetchFeeds(feeds) {
+  const results = await Promise.allSettled(feeds.map(async f => {
     const feed = await parser.parseURL(f.url);
     return (feed.items || []).slice(0, 10).map(i => ({
       source: f.name,
@@ -350,21 +366,29 @@ async function fetchNews() {
   }));
   const items = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
   items.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-  const failed = results.map((r, i) => r.status === 'rejected' ? FEEDS[i].name : null).filter(Boolean);
+  const failed = results.map((r, i) => r.status === 'rejected' ? feeds[i].name : null).filter(Boolean);
   return { items, failed };
 }
 
-app.get('/api/news', async (req, res) => {
-  try {
-    if (Date.now() - newsCache.fetchedAt > NEWS_TTL || !newsCache.items.length) {
-      const { items, failed } = await fetchNews();
-      newsCache = { items: items.length ? items : newsCache.items, fetchedAt: Date.now(), failed };
+// Serve a cached feed endpoint for a given feed list + cache slot.
+function feedEndpoint(feeds, getCache, setCache) {
+  return async (req, res) => {
+    try {
+      const cache = getCache();
+      if (Date.now() - cache.fetchedAt > NEWS_TTL || !cache.items.length) {
+        const { items, failed } = await fetchFeeds(feeds);
+        setCache({ items: items.length ? items : cache.items, fetchedAt: Date.now(), failed });
+      }
+      const c = getCache();
+      res.json({ items: c.items, fetchedAt: c.fetchedAt, failedFeeds: c.failed || [] });
+    } catch (e) {
+      res.status(500).json({ error: 'Failed to fetch feeds', detail: e.message });
     }
-    res.json({ items: newsCache.items, fetchedAt: newsCache.fetchedAt, failedFeeds: newsCache.failed || [] });
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to fetch news', detail: e.message });
-  }
-});
+  };
+}
+
+app.get('/api/news', feedEndpoint(FEEDS, () => newsCache, c => { newsCache = c; }));
+app.get('/api/health-news', feedEndpoint(HEALTH_FEEDS, () => healthCache, c => { healthCache = c; }));
 
 // ---------- Q&A ----------
 app.get('/api/questions', (req, res) => {

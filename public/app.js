@@ -47,6 +47,7 @@ function nav(view) {
   $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.nav === view));
   window.scrollTo({ top: 0 });
   if (view === 'news' && !state.newsLoaded) loadNews();
+  if (view === 'health' && !state.healthLoaded) loadHealth();
   if (view === 'advertise' && typeof aaStart === 'function' && !AA.started) aaStart();
 }
 document.addEventListener('click', e => {
@@ -75,7 +76,7 @@ function closeMobileNav() {
   });
 })();
 
-const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', adPkg: null };
+const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', health: [], healthLoaded: false, healthFilter: '', adPkg: null };
 
 // ---------- Languages ----------
 async function loadLanguages() {
@@ -282,6 +283,36 @@ $('#news-sources').onclick = e => {
   c.classList.add('active');
   state.newsFilter = c.dataset.src;
   renderNews();
+};
+
+// ---------- Health news ----------
+async function loadHealth() {
+  try {
+    const data = await api('/api/health-news');
+    state.health = data.items;
+    state.healthLoaded = true;
+    $('#health-meta').textContent = data.items.length
+      ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}`
+      : '';
+    const sources = [...new Set(data.items.map(i => i.source))];
+    $('#health-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
+      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
+    renderHealth();
+    if (data.failedFeeds?.length) $('#health-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
+  } catch (e) {
+    $('#health-list').innerHTML = `<p class="muted">Couldn't load health feeds (${esc(e.message)}). Reload to try again.</p>`;
+  }
+}
+function renderHealth() {
+  const items = state.healthFilter ? state.health.filter(i => i.source === state.healthFilter) : state.health;
+  $('#health-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
+}
+$('#health-sources').onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  $$('#health-sources .chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  state.healthFilter = c.dataset.src;
+  renderHealth();
 };
 $('#news-cats').onclick = e => {
   const c = e.target.closest('.chip'); if (!c) return;
