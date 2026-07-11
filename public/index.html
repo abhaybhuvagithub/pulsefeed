@@ -402,6 +402,29 @@
   </div>
 </footer>
 
+<!-- J.A.R.V.I.S. — agentic briefing assistant -->
+<button id="jarvis-orb" class="jarvis-orb" type="button" aria-label="Open JARVIS assistant" title="J.A.R.V.I.S.">
+  <span class="jarvis-core"></span>
+</button>
+<div id="jarvis-panel" class="jarvis-panel" role="dialog" aria-label="JARVIS assistant">
+  <div class="jarvis-head">
+    <span class="jarvis-badge"><span class="jarvis-core sm"></span></span>
+    <div class="jarvis-title">
+      <h3>J.A.R.V.I.S.</h3>
+      <p class="jarvis-status" id="jarvis-status">Online. At your service.</p>
+    </div>
+    <button class="jarvis-icon-btn" id="jarvis-mute" type="button" title="Mute / unmute voice">🔊</button>
+    <button class="jarvis-icon-btn" id="jarvis-close" type="button" aria-label="Close" title="Close">✕</button>
+  </div>
+  <div class="jarvis-log" id="jarvis-log" aria-live="polite"></div>
+  <div class="jarvis-quick" id="jarvis-quick"></div>
+  <form class="jarvis-input" id="jarvis-form" autocomplete="off">
+    <button class="jarvis-mic" id="jarvis-mic" type="button" title="Speak a command">🎙️</button>
+    <input class="input" id="jarvis-text" placeholder="Ask JARVIS… (e.g. brief me, top news, trending)" />
+    <button class="btn btn-primary" type="submit">Send</button>
+  </form>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>

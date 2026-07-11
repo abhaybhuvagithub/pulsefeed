@@ -432,3 +432,65 @@ code {
   .assistant-head { flex-wrap: wrap; }
   .assistant-reset { margin-left: 0; }
 }
+
+/* ---------- J.A.R.V.I.S. assistant ---------- */
+:root { --jarvis: #37d0ff; --jarvis-deep: #0a7ea8; }
+.jarvis-orb {
+  position: fixed; right: 22px; bottom: 22px; z-index: 200;
+  width: 60px; height: 60px; border-radius: 50%; cursor: pointer;
+  border: 2px solid var(--jarvis); background: radial-gradient(circle at 50% 45%, #0b3247 0%, #05121c 75%);
+  box-shadow: 0 0 22px rgba(55,208,255,.55), inset 0 0 14px rgba(55,208,255,.45);
+  display: flex; align-items: center; justify-content: center; transition: transform .15s;
+}
+.jarvis-orb:hover { transform: scale(1.07); }
+.jarvis-core {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: radial-gradient(circle, #eaffff 0%, var(--jarvis) 45%, var(--jarvis-deep) 100%);
+  box-shadow: 0 0 16px var(--jarvis), 0 0 28px rgba(55,208,255,.7);
+  animation: jarvis-pulse 2.2s ease-in-out infinite;
+}
+.jarvis-core.sm { width: 16px; height: 16px; }
+@keyframes jarvis-pulse { 0%,100% { transform: scale(.82); opacity: .85; } 50% { transform: scale(1.06); opacity: 1; } }
+.jarvis-speaking .jarvis-core { animation-duration: .6s; }
+
+.jarvis-panel {
+  position: fixed; right: 22px; bottom: 94px; z-index: 200; width: 380px; max-width: calc(100vw - 28px);
+  display: none; flex-direction: column;
+  background: linear-gradient(180deg, #071824 0%, #04101a 100%);
+  border: 1px solid rgba(55,208,255,.5); border-radius: 16px;
+  box-shadow: 0 0 40px rgba(55,208,255,.28), 0 20px 60px rgba(0,0,0,.5);
+  color: #d7f3ff; overflow: hidden;
+}
+.jarvis-panel.open { display: flex; }
+.jarvis-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid rgba(55,208,255,.25); }
+.jarvis-badge { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--jarvis);
+  display: flex; align-items: center; justify-content: center; background: radial-gradient(circle,#0b3247,#05121c); }
+.jarvis-title h3 { color: #eaffff; font-size: 1rem; letter-spacing: .22em; font-weight: 800; }
+.jarvis-status { font-size: .74rem; color: var(--jarvis); margin-top: 1px; letter-spacing: .04em; }
+.jarvis-icon-btn { background: transparent; border: none; color: #9fe3ff; font-size: 1rem; cursor: pointer; padding: 4px 6px; border-radius: 8px; }
+.jarvis-icon-btn:hover { color: #fff; background: rgba(55,208,255,.15); }
+#jarvis-mute { margin-left: auto; }
+.jarvis-log { padding: 14px 16px; max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.jarvis-log .jmsg { font-size: .92rem; line-height: 1.5; padding: 10px 13px; border-radius: 12px; max-width: 92%; }
+.jarvis-log .jmsg.bot { align-self: flex-start; background: rgba(55,208,255,.09); border: 1px solid rgba(55,208,255,.25); }
+.jarvis-log .jmsg.user { align-self: flex-end; background: var(--jarvis-deep); color: #eaffff; }
+.jarvis-log .jmsg a { color: var(--jarvis); }
+.jarvis-log .jmsg ul { margin: 6px 0 2px 16px; padding: 0; }
+.jarvis-log .jmsg li { margin-bottom: 4px; }
+.jarvis-log .jmsg .muted { color: #79b6cf; }
+.jarvis-quick { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px 6px; }
+.jarvis-quick button {
+  background: transparent; border: 1px solid rgba(55,208,255,.4); color: #a7e6ff;
+  border-radius: 999px; padding: 5px 12px; font-size: .74rem; font-weight: 700; cursor: pointer;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.jarvis-quick button:hover { background: rgba(55,208,255,.15); color: #fff; }
+.jarvis-input { display: flex; gap: 8px; padding: 12px 16px 16px; align-items: center; }
+.jarvis-input .input { margin: 0; background: #04121c; border-color: rgba(55,208,255,.35); color: #eaffff; }
+.jarvis-input .input:focus { border-color: var(--jarvis); box-shadow: 0 0 0 3px rgba(55,208,255,.2); }
+.jarvis-input .btn-primary { background: var(--jarvis-deep); box-shadow: none; }
+.jarvis-input .btn-primary:hover { background: var(--jarvis); color: #04121c; }
+.jarvis-mic { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+  background: transparent; border: 1px solid rgba(55,208,255,.5); color: #a7e6ff; font-size: 1rem; }
+.jarvis-mic.listening { background: var(--jarvis); color: #04121c; box-shadow: 0 0 14px var(--jarvis); animation: jarvis-pulse 1s infinite; }
+@media (max-width: 480px) { .jarvis-panel { right: 10px; bottom: 88px; } .jarvis-orb { right: 14px; bottom: 14px; } }

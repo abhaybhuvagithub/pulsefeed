@@ -721,3 +721,162 @@ async function loadVisits() {
   loadTrending();
   loadNews(); // background, also fills home preview
 })();
+
+// ---------- J.A.R.V.I.S. — agentic briefing assistant ----------
+(function initJarvis() {
+  const orb = document.getElementById('jarvis-orb');
+  const panel = document.getElementById('jarvis-panel');
+  if (!orb || !panel) return;
+  const logEl = document.getElementById('jarvis-log');
+  const statusEl = document.getElementById('jarvis-status');
+  const quickEl = document.getElementById('jarvis-quick');
+  const muteBtn = document.getElementById('jarvis-mute');
+  const micBtn = document.getElementById('jarvis-mic');
+  const form = document.getElementById('jarvis-form');
+  const textEl = document.getElementById('jarvis-text');
+
+  let muted = false;
+  try { muted = localStorage.getItem('jarvis-muted') === '1'; } catch (e) {}
+  muteBtn.textContent = muted ? '🔇' : '🔊';
+  let greeted = false;
+  const cache = {};
+
+  const status = s => { statusEl.textContent = s; };
+  const scroll = () => { logEl.scrollTop = logEl.scrollHeight; };
+  function add(role, html) { const d = document.createElement('div'); d.className = 'jmsg ' + role; d.innerHTML = html; logEl.appendChild(d); scroll(); return d; }
+
+  // Voice output
+  let voice = null;
+  function pickVoice() {
+    if (!('speechSynthesis' in window)) return;
+    const vs = speechSynthesis.getVoices();
+    voice = vs.find(v => /en-GB/i.test(v.lang) && /male|daniel|arthur|george|oliver/i.test(v.name))
+      || vs.find(v => /Google UK English Male/i.test(v.name))
+      || vs.find(v => /en-GB/i.test(v.lang))
+      || vs.find(v => /en[-_]US/i.test(v.lang)) || vs[0] || null;
+  }
+  if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+  function speak(text) {
+    if (muted || !text || !('speechSynthesis' in window)) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      u.rate = 1.02; u.pitch = 0.9;
+      u.onstart = () => orb.classList.add('jarvis-speaking');
+      u.onend = () => orb.classList.remove('jarvis-speaking');
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  function say(html, spoken) {
+    add('bot', html);
+    speak(spoken != null ? spoken : html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+  }
+
+  async function jFetch(url) {
+    const c = cache[url];
+    if (c && Date.now() - c.t < 5 * 60 * 1000) return c.data;
+    const data = await api(url);
+    cache[url] = { t: Date.now(), data };
+    return data;
+  }
+  const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning, sir.' : h < 18 ? 'Good afternoon, sir.' : 'Good evening, sir.'; };
+  const topCats = (items, fn) => { const m = {}; items.forEach(i => { const c = fn(i); m[c] = (m[c] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
+  const li = i => `<li><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a> <span class="muted">— ${esc(i.source)}</span></li>`;
+
+  async function brief() {
+    say('Right away, sir. Compiling your briefing…', 'Right away, sir.');
+    status('Scanning the feeds…');
+    try {
+      const [news, health, qs] = await Promise.all([jFetch('/api/news'), jFetch('/api/health-news'), jFetch('/api/questions')]);
+      const nItems = news.items || [], hItems = health.items || [];
+      const cats = topCats(nItems, newsCategory).slice(0, 3).map(([c, n]) => `${c} (${n})`);
+      const topQ = (qs || []).slice().sort((a, b) => b.votes - a.votes)[0];
+      const g = greeting();
+      const spoken = `${g} Here is your briefing. I am tracking ${nItems.length} technology stories and ${hItems.length} health stories. The most active topics are ${cats.join(', ') || 'various'}. Today's leading headline: ${(nItems[0] || {}).title || 'unavailable'}.`;
+      const html = `<strong>${g}</strong> Here's your briefing:<br><br>`
+        + `<b>📡 Tech</b> — ${nItems.length} stories · hottest: ${cats.join(', ') || '—'}<ul>${nItems.slice(0, 5).map(li).join('')}</ul>`
+        + `<b>🩺 Health</b> — ${hItems.length} stories<ul>${hItems.slice(0, 3).map(li).join('') || '<li class="muted">none</li>'}</ul>`
+        + `<b>💬 Community</b> — top question: "${esc(topQ ? topQ.title : '—')}" (${topQ ? topQ.votes : 0} votes)`;
+      say(html, spoken);
+    } catch (e) { say(`I'm afraid I couldn't reach the feeds, sir.`, 'I could not reach the feeds, sir.'); }
+    status('At your service.');
+  }
+  async function newsTop() {
+    status('Fetching headlines…');
+    try { const d = await jFetch('/api/news'); const it = (d.items || []).slice(0, 6); say(`Top technology headlines, sir:<ul>${it.map(li).join('')}</ul>`, `The top headline is: ${(it[0] || {}).title || 'unavailable'}.`); }
+    catch (e) { say('The feeds are unreachable, sir.'); }
+    status('At your service.');
+  }
+  async function healthTop() {
+    status('Fetching health…');
+    try { const d = await jFetch('/api/health-news'); const it = (d.items || []).slice(0, 6); say(`Top health headlines, sir:<ul>${it.map(li).join('')}</ul>`, `The leading health story: ${(it[0] || {}).title || 'unavailable'}.`); }
+    catch (e) { say('The health feeds are unreachable, sir.'); }
+    status('At your service.');
+  }
+  async function trending() {
+    status('Checking the community…');
+    try { const qs = await jFetch('/api/questions'); const top = (qs || []).slice().sort((a, b) => b.votes - a.votes).slice(0, 5); say(`The most upvoted questions, sir:<ul>${top.map(q => `<li>${esc(q.title)} <span class="muted">▲ ${q.votes}</span></li>`).join('')}</ul>`, `The top question: ${(top[0] || {}).title || 'none yet'}.`); }
+    catch (e) { say('I could not reach the Q&A, sir.'); }
+    status('At your service.');
+  }
+  async function forumsTop() {
+    status('Checking the forums…');
+    try { const ts = await jFetch('/api/forums'); const top = (ts || []).slice().sort((a, b) => b.views - a.views).slice(0, 5); say(`The busiest forum threads, sir:<ul>${top.map(t => `<li>${esc(t.title)} <span class="muted">👁 ${t.views}</span></li>`).join('')}</ul>`, `The most viewed thread: ${(top[0] || {}).title || 'none'}.`); }
+    catch (e) { say('I could not reach the forums, sir.'); }
+    status('At your service.');
+  }
+  async function search(q) {
+    status('Searching the feeds…');
+    try {
+      const [news, health] = await Promise.all([jFetch('/api/news'), jFetch('/api/health-news')]);
+      const all = (news.items || []).concat(health.items || []);
+      const ql = q.toLowerCase();
+      const hits = all.filter(i => (i.title + ' ' + (i.snippet || '')).toLowerCase().includes(ql)).slice(0, 6);
+      if (hits.length) say(`Here's what I found on "${esc(q)}", sir:<ul>${hits.map(li).join('')}</ul>`, `I found ${hits.length} stories on ${q}.`);
+      else say(`I found nothing on "${esc(q)}" in today's feeds, sir. Try “brief me”, “top news”, “health”, or “trending”.`, `I found nothing on ${q}, sir.`);
+    } catch (e) { say('The search failed, sir.'); }
+    status('At your service.');
+  }
+  function help() {
+    say(`At your command, sir. I can:<ul><li><b>brief me</b> — a full rundown</li><li><b>top news</b> / <b>health</b> — latest headlines</li><li><b>trending</b> — hottest questions</li><li><b>forums</b> — busiest threads</li><li>or ask about a topic, e.g. <i>“anything on AI?”</i></li></ul>`, 'I can brief you, or report on news, health, trending questions, and the forums, sir.');
+  }
+
+  function route(raw) {
+    const q = (raw || '').trim(); if (!q) return;
+    add('user', esc(q));
+    const t = q.toLowerCase();
+    if (/\b(brief|briefing|report|overview|catch me up|rundown|what'?s (new|up|happening|going on)|good (morning|afternoon|evening)|status)\b/.test(t)) return brief();
+    if (/\b(health|medical|medicine|disease|wellness)\b/.test(t)) return healthTop();
+    if (/\b(trend|question|q ?& ?a|q and a|upvot)\b/.test(t)) return trending();
+    if (/\b(forum|thread|discuss)\b/.test(t)) return forumsTop();
+    if (/\b(news|headline|top stor|latest)\b/.test(t)) return newsTop();
+    if (/\b(help|what can you|commands?|who are you)\b/.test(t)) return help();
+    return search(q.replace(/^(any(thing)?( on| about)?|tell me about|find|search|news on|what about)\s+/i, '').replace(/[?.!]+$/, '') || q);
+  }
+
+  function open() {
+    panel.classList.add('open'); textEl.focus();
+    if (!greeted) { greeted = true; setTimeout(() => say(`${greeting()} J.A.R.V.I.S. online. Say “brief me” for today's rundown.`, `${greeting()} Jarvis online. How may I assist?`), 250); }
+  }
+  function close() { panel.classList.remove('open'); try { speechSynthesis.cancel(); } catch (e) {} orb.classList.remove('jarvis-speaking'); }
+  orb.addEventListener('click', () => panel.classList.contains('open') ? close() : open());
+  document.getElementById('jarvis-close').addEventListener('click', close);
+  muteBtn.addEventListener('click', () => { muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊'; try { localStorage.setItem('jarvis-muted', muted ? '1' : '0'); } catch (e) {} if (muted) { try { speechSynthesis.cancel(); } catch (e) {} } });
+  form.addEventListener('submit', e => { e.preventDefault(); const v = textEl.value; textEl.value = ''; route(v); });
+
+  [['Brief me', 'brief me'], ['Top news', 'top news'], ['Health', 'health'], ['Trending', 'trending'], ['Forums', 'forums']].forEach(([label, cmd]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = () => route(cmd); quickEl.appendChild(b);
+  });
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    const rec = new SR(); rec.lang = 'en-US'; rec.interimResults = false; rec.maxAlternatives = 1;
+    let listening = false;
+    micBtn.addEventListener('click', () => { try { listening ? rec.stop() : rec.start(); } catch (e) {} });
+    rec.onstart = () => { listening = true; micBtn.classList.add('listening'); status('Listening…'); };
+    rec.onend = () => { listening = false; micBtn.classList.remove('listening'); if (statusEl.textContent === 'Listening…') status('At your service.'); };
+    rec.onerror = () => { listening = false; micBtn.classList.remove('listening'); status('At your service.'); };
+    rec.onresult = e => route(e.results[0][0].transcript);
+  } else { micBtn.style.display = 'none'; }
+})();
