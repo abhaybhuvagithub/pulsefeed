@@ -199,7 +199,7 @@ async function loadSO(q = '') {
     $('#so-list').innerHTML = (data.items || []).map(x => `
       <a class="card clickable q-item" href="${esc(x.link)}" target="_blank" rel="noopener" style="display:block; color:inherit">
         <span class="badge-src">${esc(label)}</span>
-        <h3><span class="votes">▲ ${x.votes}</span>${esc(x.title)}</h3>
+        <h3><span class="votes">▲ ${x.votes}</span>${x.title}</h3>
         <div class="meta">
           ${x.tags.slice(0, 4).map(t => `<span class="tag">${esc(t)}</span>`).join('')}
           <span>${x.answers} answer${x.answers === 1 ? '' : 's'}${x.answered ? ' · ✓ answered' : ''} · ${(x.views || 0).toLocaleString()} views · by ${esc(x.author)} · ${timeAgo(x.createdAt)}</span>
