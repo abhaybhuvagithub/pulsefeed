@@ -861,7 +861,7 @@ function adUnit(a, variant) {
       <span class="sponsor-cta">Learn more →</span>
     </a>`;
 }
-function renderAds() {
+function renderActiveAds() {
   const ads = state.activeAds || [];
   const byZone = { homebanner: [], rail: [], news: [], qa: [], forums: [], footer: [] };
   ads.forEach(a => (AD_PLACEMENTS[a.packageId] || []).forEach(z => byZone[z] && byZone[z].push(a)));
@@ -875,7 +875,7 @@ function renderAds() {
 }
 async function loadActiveAds() {
   try { state.activeAds = await api('/api/ads/active'); } catch (e) { state.activeAds = []; }
-  renderAds();
+  renderActiveAds();
 }
 
 (async function init() {
