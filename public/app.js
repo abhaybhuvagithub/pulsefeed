@@ -53,6 +53,8 @@ function nav(view) {
   if (view === 'hospitality' && !state.hospitalityLoaded) loadHospitality();
   if (view === 'transport' && !state.transportLoaded) loadTransport();
   if (view === 'courier' && !state.courierLoaded) loadCourier();
+  if (view === 'weather' && !state.weatherLoaded) loadWeather();
+  if (view === 'ethics' && !state.ethicsLoaded) loadEthics();
   if (view === 'advertise' && typeof aaStart === 'function' && !AA.started) aaStart();
 }
 document.addEventListener('click', e => {
@@ -116,7 +118,7 @@ function closeMobileNav() {
   });
 })();
 
-const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', health: [], healthLoaded: false, healthFilter: '', healthCategory: '', hospitality: [], hospitalityLoaded: false, hospitalityFilter: '', transport: [], transportLoaded: false, transportFilter: '', courier: [], courierLoaded: false, courierFilter: '', adPkg: null, activeAds: [] };
+const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', health: [], healthLoaded: false, healthFilter: '', healthCategory: '', hospitality: [], hospitalityLoaded: false, hospitalityFilter: '', transport: [], transportLoaded: false, transportFilter: '', courier: [], courierLoaded: false, courierFilter: '', weather: [], weatherLoaded: false, weatherFilter: '', ethics: [], ethicsLoaded: false, ethicsFilter: '', adPkg: null, activeAds: [] };
 
 // ---------- Languages ----------
 async function loadLanguages() {
@@ -1249,6 +1251,60 @@ $('#courier-sources').onclick = e => {
   renderCourier();
 };
 
+// ---------- Weather (live feeds) ----------
+async function loadWeather() {
+  try {
+    const data = await api('/api/weather-news');
+    state.weather = data.items; state.weatherLoaded = true;
+    $('#weather-meta').textContent = data.items.length ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}` : '';
+    const sources = [...new Set(data.items.map(i => i.source))];
+    $('#weather-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
+      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
+    renderWeather();
+    if (data.failedFeeds?.length) $('#weather-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
+  } catch (e) {
+    $('#weather-list').innerHTML = `<p class="muted">Couldn't load weather feeds (${esc(e.message)}). Reload to try again.</p>`;
+  }
+}
+function renderWeather() {
+  const items = state.weatherFilter ? state.weather.filter(i => i.source === state.weatherFilter) : state.weather;
+  $('#weather-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
+}
+$('#weather-sources').onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  $$('#weather-sources .chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  state.weatherFilter = c.dataset.src;
+  renderWeather();
+};
+
+// ---------- Ethics & Integrity (live feeds) ----------
+async function loadEthics() {
+  try {
+    const data = await api('/api/ethics-news');
+    state.ethics = data.items; state.ethicsLoaded = true;
+    $('#ethics-meta').textContent = data.items.length ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}` : '';
+    const sources = [...new Set(data.items.map(i => i.source))];
+    $('#ethics-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
+      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
+    renderEthics();
+    if (data.failedFeeds?.length) $('#ethics-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
+  } catch (e) {
+    $('#ethics-list').innerHTML = `<p class="muted">Couldn't load ethics feeds (${esc(e.message)}). Reload to try again.</p>`;
+  }
+}
+function renderEthics() {
+  const items = state.ethicsFilter ? state.ethics.filter(i => i.source === state.ethicsFilter) : state.ethics;
+  $('#ethics-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
+}
+$('#ethics-sources').onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  $$('#ethics-sources .chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  state.ethicsFilter = c.dataset.src;
+  renderEthics();
+};
+
 // ---------- Home page live clock ----------
 (function initClock() {
   const el = document.getElementById('home-clock');
@@ -1413,8 +1469,8 @@ $('#courier-sources').onclick = e => {
   async function run(q) {
     lastQuery = q;
     const ts = terms(q);
-    const [news, health, hosp, transp, courier, qs, forums] = await Promise.all([
-      jGet('/api/news'), jGet('/api/health-news'), jGet('/api/hospitality-news'), jGet('/api/transport-news'), jGet('/api/courier-news'), jGet('/api/questions'), jGet('/api/forums')
+    const [news, health, hosp, transp, courier, weather, ethics, qs, forums] = await Promise.all([
+      jGet('/api/news'), jGet('/api/health-news'), jGet('/api/hospitality-news'), jGet('/api/transport-news'), jGet('/api/courier-news'), jGet('/api/weather-news'), jGet('/api/ethics-news'), jGet('/api/questions'), jGet('/api/forums')
     ]);
     if (input.value.trim().toLowerCase() !== q) return; // superseded by a newer keystroke
     const feed = data => ((data && data.items) || []).filter(i => matches(ts, i.title, i.snippet || '')).slice(0, 5)
@@ -1427,6 +1483,8 @@ $('#courier-sources').onclick = e => {
       { name: 'Hospitality', icon: '🏨', items: feed(hosp) },
       { name: 'Public Transport', icon: '🚆', items: feed(transp) },
       { name: 'Courier Services', icon: '📦', items: feed(courier) },
+      { name: 'Weather', icon: '🌦️', items: feed(weather) },
+      { name: 'Ethics & Integrity', icon: '⚖️', items: feed(ethics) },
       { name: 'Q&A', icon: '💬', items: (qs || []).filter(x => matches(ts, x.title, x.body)).slice(0, 5)
         .map(x => ({ title: x.title, sub: '▲ ' + x.votes + ' · ' + x.answers.length + ' answers', navTo: 'qa' })) },
       { name: 'Forums', icon: '🗣️', items: (forums || []).filter(t => matches(ts, t.title, t.category)).slice(0, 5)

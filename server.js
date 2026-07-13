@@ -415,12 +415,38 @@ const COURIER_FEEDS = [
   { name: 'Parcel Industry', url: 'https://parcelindustry.com/rss.xml' }
 ];
 
+// Weather & climate news (live RSS).
+const WEATHER_FEEDS = [
+  { name: 'NOAA News', url: 'https://www.noaa.gov/news-releases.xml' },
+  { name: 'NWS Bulletins', url: 'https://www.weather.gov/rss_page.php?site_name=nws' },
+  { name: 'Met Office', url: 'https://weather.metoffice.gov.uk/feeds/rss' },
+  { name: 'Severe Weather Europe', url: 'https://www.severe-weather.eu/feed/' },
+  { name: 'Watts Up With That', url: 'https://wattsupwiththat.com/feed/' },
+  { name: 'Yale Climate Connections', url: 'https://yaleclimateconnections.org/feed/' },
+  { name: 'Carbon Brief', url: 'https://www.carbonbrief.org/feed/' },
+  { name: 'The Watchers', url: 'https://watchers.news/feed/' }
+];
+
+// Ethics, integrity & responsible-tech news (live RSS).
+const ETHICS_FEEDS = [
+  { name: 'Ethics Unwrapped', url: 'https://ethicsunwrapped.utexas.edu/feed' },
+  { name: 'Markkula Center', url: 'https://www.scu.edu/ethics/all-about-ethics/rss/' },
+  { name: 'The Ethics Centre', url: 'https://ethics.org.au/feed/' },
+  { name: 'AlgorithmWatch', url: 'https://algorithmwatch.org/en/feed/' },
+  { name: 'Montreal AI Ethics', url: 'https://montrealethics.ai/feed/' },
+  { name: 'FCPA Blog', url: 'https://fcpablog.com/feed/' },
+  { name: 'Transparency Intl', url: 'https://www.transparency.org/en/rss' },
+  { name: 'MIT Tech Review Ethics', url: 'https://www.technologyreview.com/topic/policy/feed' }
+];
+
 const NEWS_TTL = 10 * 60 * 1000; // 10 minutes
 let newsCache = { items: [], fetchedAt: 0 };
 let healthCache = { items: [], fetchedAt: 0 };
 let hospitalityCache = { items: [], fetchedAt: 0 };
 let transportCache = { items: [], fetchedAt: 0 };
 let courierCache = { items: [], fetchedAt: 0 };
+let weatherCache = { items: [], fetchedAt: 0 };
+let ethicsCache = { items: [], fetchedAt: 0 };
 
 // Aggregate any list of feeds into a single, date-sorted item list.
 async function fetchFeeds(feeds) {
@@ -462,6 +488,8 @@ app.get('/api/health-news', feedEndpoint(HEALTH_FEEDS, () => healthCache, c => {
 app.get('/api/hospitality-news', feedEndpoint(HOSPITALITY_FEEDS, () => hospitalityCache, c => { hospitalityCache = c; }));
 app.get('/api/transport-news', feedEndpoint(TRANSPORT_FEEDS, () => transportCache, c => { transportCache = c; }));
 app.get('/api/courier-news', feedEndpoint(COURIER_FEEDS, () => courierCache, c => { courierCache = c; }));
+app.get('/api/weather-news', feedEndpoint(WEATHER_FEEDS, () => weatherCache, c => { weatherCache = c; }));
+app.get('/api/ethics-news', feedEndpoint(ETHICS_FEEDS, () => ethicsCache, c => { ethicsCache = c; }));
 
 // ---------- Q&A ----------
 app.get('/api/questions', (req, res) => {
