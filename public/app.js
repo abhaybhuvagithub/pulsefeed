@@ -51,6 +51,8 @@ function nav(view) {
   if (view === 'news' && !state.newsLoaded) loadNews();
   if (view === 'health' && !state.healthLoaded) loadHealth();
   if (view === 'hospitality' && !state.hospitalityLoaded) loadHospitality();
+  if (view === 'transport' && !state.transportLoaded) loadTransport();
+  if (view === 'courier' && !state.courierLoaded) loadCourier();
   if (view === 'advertise' && typeof aaStart === 'function' && !AA.started) aaStart();
 }
 document.addEventListener('click', e => {
@@ -114,7 +116,7 @@ function closeMobileNav() {
   });
 })();
 
-const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', health: [], healthLoaded: false, healthFilter: '', healthCategory: '', hospitality: [], hospitalityLoaded: false, hospitalityFilter: '', adPkg: null, activeAds: [] };
+const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', health: [], healthLoaded: false, healthFilter: '', healthCategory: '', hospitality: [], hospitalityLoaded: false, hospitalityFilter: '', transport: [], transportLoaded: false, transportFilter: '', courier: [], courierLoaded: false, courierFilter: '', adPkg: null, activeAds: [] };
 
 // ---------- Languages ----------
 async function loadLanguages() {
@@ -1193,6 +1195,60 @@ $('#hosp-sources').onclick = e => {
   renderHospitality();
 };
 
+// ---------- Public Transport (live feeds) ----------
+async function loadTransport() {
+  try {
+    const data = await api('/api/transport-news');
+    state.transport = data.items; state.transportLoaded = true;
+    $('#transport-meta').textContent = data.items.length ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}` : '';
+    const sources = [...new Set(data.items.map(i => i.source))];
+    $('#transport-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
+      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
+    renderTransport();
+    if (data.failedFeeds?.length) $('#transport-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
+  } catch (e) {
+    $('#transport-list').innerHTML = `<p class="muted">Couldn't load transport feeds (${esc(e.message)}). Reload to try again.</p>`;
+  }
+}
+function renderTransport() {
+  const items = state.transportFilter ? state.transport.filter(i => i.source === state.transportFilter) : state.transport;
+  $('#transport-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
+}
+$('#transport-sources').onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  $$('#transport-sources .chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  state.transportFilter = c.dataset.src;
+  renderTransport();
+};
+
+// ---------- Courier Services (live feeds) ----------
+async function loadCourier() {
+  try {
+    const data = await api('/api/courier-news');
+    state.courier = data.items; state.courierLoaded = true;
+    $('#courier-meta').textContent = data.items.length ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}` : '';
+    const sources = [...new Set(data.items.map(i => i.source))];
+    $('#courier-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
+      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
+    renderCourier();
+    if (data.failedFeeds?.length) $('#courier-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
+  } catch (e) {
+    $('#courier-list').innerHTML = `<p class="muted">Couldn't load courier feeds (${esc(e.message)}). Reload to try again.</p>`;
+  }
+}
+function renderCourier() {
+  const items = state.courierFilter ? state.courier.filter(i => i.source === state.courierFilter) : state.courier;
+  $('#courier-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
+}
+$('#courier-sources').onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  $$('#courier-sources .chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  state.courierFilter = c.dataset.src;
+  renderCourier();
+};
+
 // ---------- Home page live clock ----------
 (function initClock() {
   const el = document.getElementById('home-clock');
@@ -1357,8 +1413,8 @@ $('#hosp-sources').onclick = e => {
   async function run(q) {
     lastQuery = q;
     const ts = terms(q);
-    const [news, health, hosp, qs, forums] = await Promise.all([
-      jGet('/api/news'), jGet('/api/health-news'), jGet('/api/hospitality-news'), jGet('/api/questions'), jGet('/api/forums')
+    const [news, health, hosp, transp, courier, qs, forums] = await Promise.all([
+      jGet('/api/news'), jGet('/api/health-news'), jGet('/api/hospitality-news'), jGet('/api/transport-news'), jGet('/api/courier-news'), jGet('/api/questions'), jGet('/api/forums')
     ]);
     if (input.value.trim().toLowerCase() !== q) return; // superseded by a newer keystroke
     const feed = data => ((data && data.items) || []).filter(i => matches(ts, i.title, i.snippet || '')).slice(0, 5)
@@ -1369,6 +1425,8 @@ $('#hosp-sources').onclick = e => {
       { name: 'Tech News', icon: '📡', items: feed(news) },
       { name: 'Health', icon: '🩺', items: feed(health) },
       { name: 'Hospitality', icon: '🏨', items: feed(hosp) },
+      { name: 'Public Transport', icon: '🚆', items: feed(transp) },
+      { name: 'Courier Services', icon: '📦', items: feed(courier) },
       { name: 'Q&A', icon: '💬', items: (qs || []).filter(x => matches(ts, x.title, x.body)).slice(0, 5)
         .map(x => ({ title: x.title, sub: '▲ ' + x.votes + ' · ' + x.answers.length + ' answers', navTo: 'qa' })) },
       { name: 'Forums', icon: '🗣️', items: (forums || []).filter(t => matches(ts, t.title, t.category)).slice(0, 5)

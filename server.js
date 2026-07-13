@@ -391,10 +391,36 @@ const HOSPITALITY_FEEDS = [
   { name: 'Travel + Leisure', url: 'https://www.travelandleisure.com/feeds/all.rss' }
 ];
 
+// Public transport, transit & mobility news (live RSS).
+const TRANSPORT_FEEDS = [
+  { name: 'Intelligent Transport', url: 'https://www.intelligenttransport.com/feed/' },
+  { name: 'Railway Technology', url: 'https://www.railway-technology.com/feed/' },
+  { name: 'Global Railway Review', url: 'https://www.globalrailwayreview.com/feed/' },
+  { name: 'Railway Gazette', url: 'https://www.railwaygazette.com/rss' },
+  { name: 'Streetsblog USA', url: 'https://usa.streetsblog.org/feed/' },
+  { name: 'Mass Transit', url: 'https://www.masstransitmag.com/rss' },
+  { name: 'Metro Rail News', url: 'https://www.metrorailnews.in/feed/' },
+  { name: 'Smart Cities Dive', url: 'https://www.smartcitiesdive.com/feeds/news/' }
+];
+
+// Courier, parcel & logistics news (live RSS).
+const COURIER_FEEDS = [
+  { name: 'Post & Parcel', url: 'https://postandparcel.info/feed/' },
+  { name: 'Parcel & Postal Tech Intl', url: 'https://www.parcelandpostaltechnologyinternational.com/feed' },
+  { name: 'The Loadstar', url: 'https://theloadstar.com/feed/' },
+  { name: 'Logistics Manager', url: 'https://www.logisticsmanager.com/feed/' },
+  { name: 'Supply Chain Dive', url: 'https://www.supplychaindive.com/feeds/news/' },
+  { name: 'FreightWaves', url: 'https://www.freightwaves.com/feed' },
+  { name: 'Air Cargo News', url: 'https://www.aircargonews.net/feed/' },
+  { name: 'Parcel Industry', url: 'https://parcelindustry.com/rss.xml' }
+];
+
 const NEWS_TTL = 10 * 60 * 1000; // 10 minutes
 let newsCache = { items: [], fetchedAt: 0 };
 let healthCache = { items: [], fetchedAt: 0 };
 let hospitalityCache = { items: [], fetchedAt: 0 };
+let transportCache = { items: [], fetchedAt: 0 };
+let courierCache = { items: [], fetchedAt: 0 };
 
 // Aggregate any list of feeds into a single, date-sorted item list.
 async function fetchFeeds(feeds) {
@@ -434,6 +460,8 @@ function feedEndpoint(feeds, getCache, setCache) {
 app.get('/api/news', feedEndpoint(FEEDS, () => newsCache, c => { newsCache = c; }));
 app.get('/api/health-news', feedEndpoint(HEALTH_FEEDS, () => healthCache, c => { healthCache = c; }));
 app.get('/api/hospitality-news', feedEndpoint(HOSPITALITY_FEEDS, () => hospitalityCache, c => { hospitalityCache = c; }));
+app.get('/api/transport-news', feedEndpoint(TRANSPORT_FEEDS, () => transportCache, c => { transportCache = c; }));
+app.get('/api/courier-news', feedEndpoint(COURIER_FEEDS, () => courierCache, c => { courierCache = c; }));
 
 // ---------- Q&A ----------
 app.get('/api/questions', (req, res) => {
