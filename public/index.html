@@ -35,6 +35,7 @@
       <a href="#news" data-nav="news">Tech News</a>
       <a href="#health" data-nav="health">Health</a>
       <a href="#hospitality" data-nav="hospitality">Hospitality</a>
+      <a href="#advertise" data-nav="advertise" class="cta-link">Advertise</a>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle dark / light theme" title="Toggle theme">
         <span class="icon-moon" aria-hidden="true">🌙</span><span class="icon-sun" aria-hidden="true">☀️</span>
       </button>
@@ -428,11 +429,50 @@
     <div id="hosp-list" class="grid-2"><p class="muted">Loading hospitality feeds…</p></div>
   </section>
 
+
+  <!-- ADVERTISE -->
+  <section id="view-advertise" class="view hidden">
+    <h1 class="section-title">Advertise <span class="slash">/</span> With Us</h1>
+    <p class="muted">Reach millions of developers. Packages from <b>$49</b> to <b>$999</b>, organized by category.</p>
+
+    <!-- Agentic AI advertising assistant -->
+    <div class="assistant" id="ad-assistant">
+      <div class="assistant-head">
+        <div class="assistant-avatar">✦</div>
+        <div>
+          <h3>Blaze <span>· AI Ad Assistant</span></h3>
+          <p class="muted">Tell me your goal and budget — I'll pick the right package and book it for you.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm assistant-reset" id="assistant-reset" type="button">Restart</button>
+      </div>
+      <div class="assistant-log" id="assistant-log" aria-live="polite"></div>
+      <div class="assistant-quick" id="assistant-quick"></div>
+      <form class="assistant-input" id="assistant-form" autocomplete="off">
+        <input class="input" id="assistant-text" placeholder="e.g. I want brand awareness with a $600/mo budget" />
+        <button class="btn btn-primary" type="submit">Send</button>
+      </form>
+    </div>
+
+    <h2 class="section-title" style="font-size:1.2rem">Or browse packages yourself</h2>
+    <div class="chip-row" id="ad-cats"></div>
+    <div class="grid-3" id="ad-grid"></div>
+    <form id="ad-form" class="card form hidden" hx-post="/partials/ads/inquiries" hx-target="#ad-result" hx-swap="innerHTML"
+          hx-on::after-request="['company','email','message'].forEach(n=>{const el=this.querySelector('[name='+n+']');if(el)el.value=''})">
+      <h3 id="ad-form-title">Book a Package</h3>
+      <input type="hidden" name="packageId" id="ad-package-id" />
+      <input class="input" name="company" placeholder="Company name *" required />
+      <input class="input" name="email" type="email" placeholder="Work email *" required />
+      <textarea class="input" name="message" rows="3" placeholder="Tell us about your campaign (optional)"></textarea>
+      <button class="btn btn-primary" type="submit">Send Inquiry</button>
+      <p class="muted" id="ad-result"></p>
+    </form>
+  </section>
+
 </main>
 
 <footer class="footer">
   <div class="container footer-inner">
-    <p>© 2026 CodeBlazeFeed 🔥 — Built by developers, for developers.</p>
+    <p>© 2026 CodeBlazeFeed 🔥 — Built by developers, for developers. <a href="#advertise" data-nav="advertise">Advertise with us</a></p>
     <p class="footer-visits">👁 <b id="visit-count">–</b> total visitors</p>
   </div>
   <div class="container">
