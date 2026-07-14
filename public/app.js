@@ -1022,6 +1022,23 @@ async function loadActiveAds() {
     return { html: `Top ${esc(label)} headlines:<ul>${it.map(li).join('')}</ul>`, spoken: `The top ${label} story: ${(it[0] || {}).title || 'unavailable'}.` };
   }, `The ${label.toLowerCase()} feeds are unreachable.`);
 
+  // Deep-dive on a single language: tagline, uses, tips, and where to learn.
+  const langDetail = (name) => run(`Looking up ${name}…`, async () => {
+    const langs = state.languages && state.languages.length ? state.languages : await jFetch('/api/languages');
+    const l = (langs || []).find(x => x.name.toLowerCase() === name.toLowerCase())
+          || (langs || []).find(x => x.name.toLowerCase().includes(name.toLowerCase()));
+    if (!l) return { html: `I don't have a guide for “${esc(name)}”. Say <b>languages</b> to see what we cover.`, spoken: `I don't have a guide for ${name}.` };
+    const tips = (l.tips || []).slice(0, 3);
+    const links = (l.links || []).slice(0, 3);
+    const html = `<b>${l.icon || ''} ${esc(l.name)}</b> — ${esc(l.tagline)}`
+      + `<br><b>Used for:</b> ${(l.usedFor || []).slice(0, 4).map(esc).join(' · ') || '—'}`
+      + (tips.length ? `<br><b>Tips:</b><ul>${tips.map(x => `<li>${esc(x).replace(/`([^`]+)`/g, '<code>$1</code>')}</li>`).join('')}</ul>` : '')
+      + (links.length ? `<span class="muted">Learn: ${links.map(k => `<a href="${esc(k.url)}" target="_blank" rel="noopener">${esc(k.label)}</a>`).join(' · ')}</span>` : '');
+    const spoken = `${l.name}. ${l.tagline} Used for ${(l.usedFor || []).slice(0, 3).join(', ')}.`
+      + (tips[0] ? ` A quick tip: ${tips[0].replace(/`/g, '')}` : '');
+    return { html, spoken };
+  }, 'I could not load that language.');
+
   // Emergency helpline quick-reference (spoken aloud for fast recall).
   function emergencyInfo() {
     const html = `<b>🚑 Emergency helplines — save these</b>`
@@ -1069,8 +1086,9 @@ async function loadActiveAds() {
   }
 
   const search = (q) => run('Searching the feeds…', async () => {
-    const [news, health, weather, ethics] = await Promise.all([jFetch('/api/news'), jFetch('/api/health-news'), jFetch('/api/weather-news'), jFetch('/api/ethics-news')]);
-    const all = (news.items || []).concat(health.items || [], weather.items || [], ethics.items || []);
+    const eps = ['/api/news', '/api/health-news', '/api/weather-news', '/api/ethics-news', '/api/transport-news', '/api/courier-news', '/api/hospitality-news', '/api/emergency-news'];
+    const res = await Promise.all(eps.map(e => jFetch(e).catch(() => ({ items: [] }))));
+    const all = res.flatMap(r => (r && r.items) || []);
     const ql = q.toLowerCase();
     const hits = all.filter(i => (i.title + ' ' + (i.snippet || '')).toLowerCase().includes(ql)).slice(0, 6);
     if (hits.length) return { html: `Here's what I found on "${esc(q)}":<ul>${hits.map(li).join('')}</ul>`, spoken: `I found ${hits.length} stories on ${q}.` };
@@ -1163,48 +1181,89 @@ async function loadActiveAds() {
       'I can brief you, read live headlines for news, health, weather, transport, courier and ethics, give you emergency helpline numbers, navigate the site when you say open followed by a section, report on trending questions, forums and languages, and answer common questions.');
   }
 
+  // Contextual follow-up suggestions per intent (label, command).
+  const SUG = {
+    brief:   [['Read in detail', 'read in detail'], ['Weather', 'weather'], ['Emergency', 'emergency'], ['Trending', 'trending']],
+    news:    [['Read in detail', 'read in detail'], ['Anything on AI?', 'anything on AI'], ['Weather', 'weather'], ['Open Tech News', 'open tech news']],
+    weather: [['Open Weather', 'open weather'], ['Emergency', 'emergency'], ['Top news', 'top news']],
+    health:  [['Open Health', 'open health'], ['Top news', 'top news'], ['Trending', 'trending']],
+    emergency: [['Open Emergency', 'open emergency'], ['Ambulance', 'ambulance'], ['Health', 'health']],
+    transport: [['Open Transport', 'open transport'], ['Courier', 'courier'], ['Top news', 'top news']],
+    courier: [['Open Courier', 'open courier'], ['Transport', 'transport'], ['Top news', 'top news']],
+    ethics:  [['Open Ethics', 'open ethics'], ['Top news', 'top news']],
+    hospitality: [['Open Hospitality', 'open hospitality'], ['Top news', 'top news']],
+    trending: [['Forums', 'forums'], ['Open Q&A', 'open q&a'], ['Top news', 'top news']],
+    forums:  [['Trending', 'trending'], ['Open Forums', 'open forums']],
+    languages: [['About Python', 'tell me about python'], ['About Rust', 'tell me about rust'], ['Open Languages', 'open languages']],
+    lang:    [['Open Languages', 'open languages'], ['Trending', 'trending'], ['Top news', 'top news']],
+    faq:     [['What can you do', 'what can you do'], ['Open Home', 'open home']],
+    def:     [['Brief me', 'brief me'], ['Top news', 'top news'], ['Weather', 'weather'], ['What can you do', 'what can you do']]
+  };
   function route(raw) {
     const q = (raw || '').trim(); if (!q) return;
+    lastUserMsg = q;
     add('user', esc(q));
     const t = q.toLowerCase();
+    const go = (sugg, fn) => { suggest(SUG[sugg] || SUG.def); return fn(); };
     if (/\b(stop|silence|quiet|shush|shut up|enough)\b/.test(t)) return stopSpeaking();
+    if (/^clear$|\bclear (chat|the )?(chat|conversation|history)\b|\bstart over\b|\breset chat\b/.test(t)) { logEl.innerHTML = ''; suggest(SUG.def); return; }
     // Explicit navigation: "open / go to / show me / take me to <section>".
     if (/\b(open|go to|goto|take me to|show me|navigate|visit)\b/.test(t)) {
       const m = NAV_MAP.find(([re]) => re.test(t));
-      if (m) return goTo(m[1], m[2]);
+      if (m) { suggest(SUG.def); return goTo(m[1], m[2]); }
     }
-    if (/\b(what'?s new|what can (you|this)|your (features|capabilities)|sections?|what do you (offer|have)|about (the )?site)\b/.test(t)) return whatsNew();
-    if (/\b(brief|briefing|report|overview|catch me up|rundown|what'?s (up|happening|going on)|good (morning|afternoon|evening)|status)\b/.test(t)) return brief();
-    if (/\b(read|in detail|details?|tell me more|more detail|elaborate|summar)\b/.test(t)) return readDetails();
-    // Emergency helplines (numbers, ambulance, fraud) — high priority.
-    if (/\b(emergency|ambulance|helpline|fraud number|police number|fire number|\b112\b|\b911\b|\b108\b|\b1930\b|\b1945\b|\b1098\b)\b/.test(t)) return emergencyInfo();
-    if (/\b(language|languages)\b/.test(t)) return languagesInfo();
-    if (/\b(health|medical|medicine|disease|wellness)\b/.test(t)) return healthTop();
-    if (/\b(weather|forecast|climate|temperature|rain)\b/.test(t)) return topicFeed('/api/weather-news', 'Weather');
-    if (/\b(transport|transit|metro|railway|\btrain(s)?\b|\bbus(es)?\b|mobility)\b/.test(t)) return topicFeed('/api/transport-news', 'Public Transport');
-    if (/\b(courier|parcel|logistics|shipping|delivery)\b/.test(t)) return topicFeed('/api/courier-news', 'Courier Services');
-    if (/\bethic|\bintegrity\b|\bcorruption\b|responsible (ai|tech)/.test(t)) return topicFeed('/api/ethics-news', 'Ethics & Integrity');
-    if (/\b(hospitality|hotel|travel)\b/.test(t)) return topicFeed('/api/hospitality-news', 'Hospitality');
-    if (/\b(trend|question|q ?& ?a|q and a|upvot)\b/.test(t)) return trending();
-    if (/\b(forum|thread|discuss)\b/.test(t)) return forumsTop();
-    if (/\b(news|headline|top stor|latest)\b/.test(t)) return newsTop();
-    // FAQ: explicit list, or a keyword match on a common question / problem.
-    if (/\b(faq|faqs|frequently asked|help topics|common questions?)\b/.test(t)) { const f = findFaq(t); return f ? answerFaq(f) : faqList(); }
-    if (/\b(help|what can you|commands?|who are you)\b/.test(t)) return help();
-    if (/\b(how (do|to|can)|solution|troubleshoot|problem|not working|isn'?t working|can'?t|cannot|why (is|does|won'?t))\b/.test(t)) { const f = findFaq(t); return f ? answerFaq(f) : faqList(); }
-    { const f = findFaq(t); if (f) return answerFaq(f); }   // last: match any FAQ keyword before searching feeds
+    // Language deep-dive: "tell me about Python", "rust tips", "explain SQL".
+    const langM = (state.languages || []).find(l => new RegExp('(^|\\W)' + l.name.toLowerCase().replace(/[+#.^$*?()[\]{}|\\-]/g, '\\$&') + '(\\W|$)').test(t));
+    if (langM && /\b(tell me about|about|tips?|trick|explain|learn|snippet|cheat|how (do i|to) use|teach|guide)\b/.test(t)) return go('lang', () => langDetail(langM.name));
+    if (/\b(what'?s new|what can (you|this)|your (features|capabilities)|sections?|what do you (offer|have)|about (the )?site)\b/.test(t)) return go('def', whatsNew);
+    if (/\b(brief|briefing|report|overview|catch me up|rundown|what'?s (up|happening|going on)|good (morning|afternoon|evening)|status)\b/.test(t)) return go('brief', brief);
+    if (/\b(read|in detail|details?|tell me more|more detail|elaborate|summar)\b/.test(t)) return go('news', readDetails);
+    if (/\b(emergency|ambulance|helpline|fraud number|police number|fire number|\b112\b|\b911\b|\b108\b|\b1930\b|\b1945\b|\b1098\b)\b/.test(t)) return go('emergency', emergencyInfo);
+    if (/\b(language|languages)\b/.test(t)) return go('languages', languagesInfo);
+    if (/\b(health|medical|medicine|disease|wellness)\b/.test(t)) return go('health', healthTop);
+    if (/\b(weather|forecast|climate|temperature|rain)\b/.test(t)) return go('weather', () => topicFeed('/api/weather-news', 'Weather'));
+    if (/\b(transport|transit|metro|railway|\btrain(s)?\b|\bbus(es)?\b|mobility)\b/.test(t)) return go('transport', () => topicFeed('/api/transport-news', 'Public Transport'));
+    if (/\b(courier|parcel|logistics|shipping|delivery)\b/.test(t)) return go('courier', () => topicFeed('/api/courier-news', 'Courier Services'));
+    if (/\bethic|\bintegrity\b|\bcorruption\b|responsible (ai|tech)/.test(t)) return go('ethics', () => topicFeed('/api/ethics-news', 'Ethics & Integrity'));
+    if (/\b(hospitality|hotel|travel)\b/.test(t)) return go('hospitality', () => topicFeed('/api/hospitality-news', 'Hospitality'));
+    if (/\b(trend|question|q ?& ?a|q and a|upvot)\b/.test(t)) return go('trending', trending);
+    if (/\b(forum|thread|discuss)\b/.test(t)) return go('forums', forumsTop);
+    if (/\b(news|headline|top stor|latest)\b/.test(t)) return go('news', newsTop);
+    if (/\b(faq|faqs|frequently asked|help topics|common questions?)\b/.test(t)) { const f = findFaq(t); suggest(SUG.faq); return f ? answerFaq(f) : faqList(); }
+    if (/\b(help|what can you|commands?|who are you)\b/.test(t)) return go('def', help);
+    if (/\b(how (do|to|can)|solution|troubleshoot|problem|not working|isn'?t working|can'?t|cannot|why (is|does|won'?t))\b/.test(t)) { const f = findFaq(t); suggest(SUG.faq); return f ? answerFaq(f) : faqList(); }
+    { const f = findFaq(t); if (f) { suggest(SUG.faq); return answerFaq(f); } }   // match any FAQ keyword before searching
+    suggest(SUG.def);
     return search(q.replace(/^(any(thing)?( on| about)?|tell me about|find|search|news on|what about)\s+/i, '').replace(/[?.!]+$/, '') || q);
   }
 
   function open() {
     panel.classList.add('open'); textEl.focus();
-    if (!greeted) { greeted = true; setTimeout(() => say(`${greeting()} <b>GARUDA</b> online. Say “brief me”, “weather”, “emergency”, or “open jobs” — or ask <b>what can you do</b>.`, `${greeting()} Garuda online. How may I assist?`), 250); }
+    if (!greeted) { greeted = true; suggest(SUG.def); setTimeout(() => say(`${greeting()} <b>GARUDA</b> online. Say “brief me”, “weather”, “emergency”, or “open jobs” — or tap a suggestion below.`, `${greeting()} Garuda online. How may I assist?`), 250); }
   }
   function close() { panel.classList.remove('open'); try { speechSynthesis.cancel(); } catch (e) {} orb.classList.remove('jarvis-speaking'); }
   orb.addEventListener('click', () => panel.classList.contains('open') ? close() : open());
   document.getElementById('jarvis-close').addEventListener('click', close);
   muteBtn.addEventListener('click', () => { muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊'; try { localStorage.setItem('jarvis-muted', muted ? '1' : '0'); } catch (e) {} if (muted) { try { speechSynthesis.cancel(); } catch (e) {} } });
   form.addEventListener('submit', e => { e.preventDefault(); const v = textEl.value; textEl.value = ''; route(v); });
+
+  // Contextual follow-up suggestions, shown above the persistent quick buttons.
+  let lastUserMsg = '';
+  const suggestEl = document.createElement('div');
+  suggestEl.className = 'jarvis-suggest';
+  quickEl.parentNode.insertBefore(suggestEl, quickEl);
+  function suggest(list) {
+    suggestEl.innerHTML = '';
+    (list || []).forEach(([label, cmd]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'jsug';
+      b.textContent = label; b.onclick = () => route(cmd || label);
+      suggestEl.appendChild(b);
+    });
+  }
+  // Press ↑ in an empty box to recall your last message.
+  textEl.addEventListener('keydown', e => {
+    if (e.key === 'ArrowUp' && !textEl.value && lastUserMsg) { e.preventDefault(); textEl.value = lastUserMsg; textEl.select(); }
+  });
 
   [['Brief me', 'brief me'], ['Top news', 'top news'], ['Weather', 'weather'], ['Emergency', 'emergency'], ['Health', 'health'], ['Trending', 'trending'], ['FAQ', 'faq']].forEach(([label, cmd]) => {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = () => route(cmd); quickEl.appendChild(b);

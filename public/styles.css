@@ -873,3 +873,14 @@ select:focus-visible, .card.clickable:focus-visible, [tabindex]:focus-visible {
   .view:not(.hidden) { animation: none; }
   .card.clickable:hover { transform: none; }
 }
+
+/* GARUDA contextual suggestion chips */
+.jarvis-suggest { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 16px 0; background: #fff; }
+.jarvis-suggest:empty { display: none; }
+.jarvis-suggest .jsug {
+  background: #fff8e6; border: 1px solid var(--jarvis, #ffce45); color: #7a5606;
+  border-radius: 999px; padding: 5px 12px; font-size: .76rem; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px; transition: background .15s, color .15s;
+}
+.jarvis-suggest .jsug::before { content: "↝"; opacity: .7; }
+.jarvis-suggest .jsug:hover { background: var(--jarvis, #ffce45); color: #2a1e04; }
