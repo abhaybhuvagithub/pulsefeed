@@ -540,13 +540,35 @@ code {
 .jarvis-log .jmsg li { margin-bottom: 4px; }
 .jarvis-log .jmsg .muted { color: #9c8244; }
 .jarvis-log .jmsg code { background: #fdf1cf; color: #7a5606; padding: 1px 5px; border-radius: 4px; font-size: .85em; }
-.jarvis-quick { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px 6px; background: #fff; }
-.jarvis-quick button {
-  background: #fff; border: 1px solid var(--jarvis-deep); color: #a9791a;
-  border-radius: 999px; padding: 5px 12px; font-size: .74rem; font-weight: 700; cursor: pointer;
-  text-transform: uppercase; letter-spacing: .04em;
+.jarvis-quick {
+  display: flex; gap: 7px; flex-wrap: wrap; padding: 10px 16px 8px; background: #fff;
+  border-top: 1px solid rgba(255,206,69,.5);
+  position: relative;
 }
-.jarvis-quick button:hover { background: var(--jarvis); color: #2a1e04; border-color: var(--jarvis); }
+/* "QUICK ACTIONS" caption sits on the divider — brands this row as the core menu. */
+.jarvis-quick::before {
+  content: "⌁ GARUDA QUICK";
+  position: absolute; top: -8px; left: 16px;
+  background: #fff; padding: 0 7px;
+  font-size: .6rem; font-weight: 800; letter-spacing: .14em;
+  color: var(--jarvis-deep);
+}
+.jarvis-quick button {
+  background: linear-gradient(150deg, #fff6d8 0%, #ffe6a3 55%, #f7cf72 100%);
+  border: 1px solid var(--jarvis-deep); color: #6d4b06;
+  border-radius: 10px; padding: 6px 12px 6px 10px; font-size: .74rem; font-weight: 800; cursor: pointer;
+  letter-spacing: .03em; display: inline-flex; align-items: center; gap: 5px;
+  box-shadow: 0 1px 2px rgba(140,98,10,.18), inset 0 1px 0 rgba(255,255,255,.75);
+  transition: transform .12s ease, box-shadow .15s ease, background .15s ease;
+}
+/* Eagle-feather glyph marks each GARUDA action (distinct from the ↝ context chips). */
+.jarvis-quick button::before { content: "🪶"; font-size: .78em; filter: saturate(.7); }
+.jarvis-quick button:hover {
+  background: linear-gradient(150deg, #ffe6a3 0%, var(--jarvis) 100%); color: #2a1e04;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(176,125,16,.35), 0 0 0 2px rgba(255,206,69,.35), inset 0 1px 0 rgba(255,255,255,.6);
+}
+.jarvis-quick button:active { transform: translateY(0); }
 .jarvis-input { display: flex; gap: 8px; padding: 12px 16px 16px; align-items: center; background: #fff; }
 .jarvis-input .input { margin: 0; background: #fffdf6; border-color: var(--jarvis-deep); color: #3a2c08; }
 .jarvis-input .input::placeholder { color: #b39a5e; }

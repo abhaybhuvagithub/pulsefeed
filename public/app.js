@@ -1228,22 +1228,24 @@ function initSubscribe() {
   }
 
   // Contextual follow-up suggestions per intent (label, command).
+  // These never repeat the always-visible quick bar (brief me, top news, weather,
+  // emergency, health, trending, faq) — they surface deeper, context-specific paths.
   const SUG = {
-    brief:   [['Read in detail', 'read in detail'], ['Weather', 'weather'], ['Emergency', 'emergency'], ['Trending', 'trending']],
-    news:    [['Read in detail', 'read in detail'], ['Anything on AI?', 'anything on AI'], ['Weather', 'weather'], ['Open Tech News', 'open tech news']],
-    weather: [['Open Weather', 'open weather'], ['Emergency', 'emergency'], ['Top news', 'top news']],
-    health:  [['Open Health', 'open health'], ['Top news', 'top news'], ['Trending', 'trending']],
-    emergency: [['Open Emergency', 'open emergency'], ['Ambulance', 'ambulance'], ['Health', 'health']],
-    transport: [['Open Transport', 'open transport'], ['Courier', 'courier'], ['Top news', 'top news']],
-    courier: [['Open Courier', 'open courier'], ['Transport', 'transport'], ['Top news', 'top news']],
-    ethics:  [['Open Ethics', 'open ethics'], ['Top news', 'top news']],
-    hospitality: [['Open Hospitality', 'open hospitality'], ['Top news', 'top news']],
-    trending: [['Forums', 'forums'], ['Open Q&A', 'open q&a'], ['Top news', 'top news']],
-    forums:  [['Trending', 'trending'], ['Open Forums', 'open forums']],
+    brief:   [['Read in detail', 'read in detail'], ['Anything on AI?', 'anything on AI']],
+    news:    [['Read in detail', 'read in detail'], ['Anything on AI?', 'anything on AI'], ['Open Tech News', 'open tech news']],
+    weather: [['Open Weather', 'open weather']],
+    health:  [['Open Health', 'open health']],
+    emergency: [['Open Emergency', 'open emergency'], ['Ambulance', 'ambulance']],
+    transport: [['Open Transport', 'open transport'], ['Courier', 'courier']],
+    courier: [['Open Courier', 'open courier'], ['Transport', 'transport']],
+    ethics:  [['Open Ethics', 'open ethics']],
+    hospitality: [['Open Hospitality', 'open hospitality']],
+    trending: [['Open Q&A', 'open q&a'], ['Forums', 'forums']],
+    forums:  [['Open Forums', 'open forums'], ['Open Q&A', 'open q&a']],
     languages: [['About Python', 'tell me about python'], ['About Rust', 'tell me about rust'], ['Open Languages', 'open languages']],
-    lang:    [['Open Languages', 'open languages'], ['Trending', 'trending'], ['Top news', 'top news']],
-    faq:     [['What can you do', 'what can you do'], ['Open Home', 'open home']],
-    def:     [['Brief me', 'brief me'], ['Top news', 'top news'], ['Weather', 'weather'], ['What can you do', 'what can you do']]
+    lang:    [['Open Languages', 'open languages']],
+    faq:     [['Open Home', 'open home']],
+    def:     []
   };
   function route(raw) {
     const q = (raw || '').trim(); if (!q) return;
