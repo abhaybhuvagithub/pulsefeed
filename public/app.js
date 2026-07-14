@@ -1589,7 +1589,7 @@ $('#emergency-sources').onclick = e => {
   if (!copy || !kEl || !tEl || !dEl) return;
 
   const slides = [
-    { kicker: 'The Hottest Programming Hub', title: 'Code harder. Ship faster. Stay sharp.', dek: 'Tips & tricks for 21 languages, community Q&A, developer forums, and live tech news from the world’s top feeds.' },
+    { kicker: 'Your Pulse on Code, News & Knowledge', title: 'Code harder. Ship faster. Stay sharp.', dek: 'Tips & tricks for 21 languages, community Q&A, developer forums, and live tech news from the world’s top feeds.' },
     { kicker: 'Live Tech News', title: 'Never miss what ships.', dek: '19 live feeds across AI, dev, electronics & comms, business, security and science — organized by topic and refreshed continuously.' },
     { kicker: 'Health & Medical', title: 'Stay informed. Stay well.', dek: 'Top health and medical news, grouped by topic from ScienceDaily, WHO, NPR, STAT and more.' },
     { kicker: 'Hospitality & Travel', title: 'Book. Stay. Explore.', dek: 'Top booking and hotel platforms — Booking.com, Airbnb, Marriott — plus live hospitality-industry news.' },
