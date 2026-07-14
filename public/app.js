@@ -809,8 +809,11 @@ function aaDoneQuick() {
 async function loadTrending() {
   try {
     const data = await api('/api/trending-news');
-    state.trendingFeed = data.items; state.trendingFeedLoaded = true;
-    const items = (data.items || []).slice(0, 6);
+    state.trendingFeed = data.items;   // cache for the full page (don't set the page's loaded flag)
+    // Diversify: prefer one item per source, then fill to 6 by recency.
+    const seen = new Set(), picked = [];
+    for (const i of (data.items || [])) { if (!seen.has(i.source)) { seen.add(i.source); picked.push(i); } }
+    const items = picked.concat((data.items || []).filter(i => !picked.includes(i))).slice(0, 6);
     if (!items.length) return loadTrendingQA();
     $('#home-trending').innerHTML = items.map(i => `
       <a class="card clickable" href="${esc(i.link)}" target="_blank" rel="noopener">
