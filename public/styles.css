@@ -190,6 +190,8 @@ h1, h2, h3, h4 { color: var(--ink); }
 }
 .section-title .slash { color: var(--magenta); }
 .split-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.see-all { font-size: .85rem; font-weight: 700; color: var(--magenta); white-space: nowrap; }
+.see-all:hover { text-decoration: underline; }
 
 .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; margin-top: 22px; }
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 22px; margin-top: 22px; }

@@ -56,6 +56,7 @@ function nav(view) {
   if (view === 'weather' && !state.weatherLoaded) loadWeather();
   if (view === 'ethics' && !state.ethicsLoaded) loadEthics();
   if (view === 'emergency' && !state.emergencyLoaded) loadEmergency();
+  if (view === 'trendingfeed' && !state.trendingFeedLoaded) loadTrendingFeed();
   if (view === 'advertise' && typeof aaStart === 'function' && !AA.started) aaStart();
 }
 document.addEventListener('click', e => {
@@ -803,7 +804,26 @@ function aaDoneQuick() {
 })();
 
 // ---------- Home trending ----------
+// Live: the hottest items across the dev community (HN, GitHub, Dev.to, …).
+// Falls back to top community Q&A if the trending feed is unavailable.
 async function loadTrending() {
+  try {
+    const data = await api('/api/trending-news');
+    state.trendingFeed = data.items; state.trendingFeedLoaded = true;
+    const items = (data.items || []).slice(0, 6);
+    if (!items.length) return loadTrendingQA();
+    $('#home-trending').innerHTML = items.map(i => `
+      <a class="card clickable" href="${esc(i.link)}" target="_blank" rel="noopener">
+        <span class="tag">${esc(i.source)}</span>
+        <h3 style="margin-top:8px">${esc(i.title)}</h3>
+        <div class="meta"><span>🔥 ${i.date ? timeAgo(new Date(i.date).getTime()) : 'trending now'}</span></div>
+      </a>`).join('');
+  } catch (e) {
+    loadTrendingQA();
+  }
+}
+// Fallback: top upvoted community questions.
+function loadTrendingQA() {
   const qs = state.questions.slice().sort((a,b) => b.votes - a.votes).slice(0, 3);
   $('#home-trending').innerHTML = qs.map(q => `
     <div class="card clickable" onclick="nav_qa()">
@@ -1104,6 +1124,7 @@ function initSubscribe() {
     [/\b(job|jobs|career|hiring|internship)\b/, 'jobs', 'Jobs'],
     [/\b(forum|forums|thread|discuss)\b/, 'forums', 'Forums'],
     [/\b(q ?& ?a|q and a|question|questions|ask)\b/, 'qa', 'Q&A'],
+    [/\b(trending|what'?s hot|hot right now)\b/, 'trendingfeed', 'Trending'],
     [/\b(tech news|technology news|headline|news)\b/, 'news', 'Tech News'],
     [/\b(health|medical)\b/, 'health', 'Health'],
     [/\b(hospitality|hotel|travel)\b/, 'hospitality', 'Hospitality'],
@@ -1274,6 +1295,7 @@ function initSubscribe() {
     if (/\b(courier|parcel|logistics|shipping|delivery)\b/.test(t)) return go('courier', () => topicFeed('/api/courier-news', 'Courier Services'));
     if (/\bethic|\bintegrity\b|\bcorruption\b|responsible (ai|tech)/.test(t)) return go('ethics', () => topicFeed('/api/ethics-news', 'Ethics & Integrity'));
     if (/\b(hospitality|hotel|travel)\b/.test(t)) return go('hospitality', () => topicFeed('/api/hospitality-news', 'Hospitality'));
+    if (/\b(what'?s hot|hot right now|trending feeds?|trending news|hacker news|github trending|product hunt|lobsters)\b/.test(t)) { suggest([['Open Trending', 'open trending'], ['Read in detail', 'read in detail']]); return topicFeed('/api/trending-news', 'Trending'); }
     if (/\b(trend|question|q ?& ?a|q and a|upvot)\b/.test(t)) return go('trending', trending);
     if (/\b(forum|thread|discuss)\b/.test(t)) return go('forums', forumsTop);
     if (/\b(news|headline|top stor|latest)\b/.test(t)) return go('news', newsTop);
@@ -1484,6 +1506,33 @@ $('#ethics-sources').onclick = e => {
   c.classList.add('active');
   state.ethicsFilter = c.dataset.src;
   renderEthics();
+};
+
+// ---------- Trending (live feeds across the dev community) ----------
+async function loadTrendingFeed() {
+  try {
+    const data = await api('/api/trending-news');
+    state.trendingFeed = data.items; state.trendingFeedLoaded = true;
+    $('#trendingfeed-meta').textContent = data.items.length ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}` : '';
+    const sources = [...new Set(data.items.map(i => i.source))];
+    $('#trendingfeed-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
+      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
+    renderTrendingFeed();
+    if (data.failedFeeds?.length) $('#trendingfeed-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
+  } catch (e) {
+    $('#trendingfeed-list').innerHTML = `<p class="muted">Couldn't load trending feeds (${esc(e.message)}). Reload to try again.</p>`;
+  }
+}
+function renderTrendingFeed() {
+  const items = state.trendingFeedFilter ? state.trendingFeed.filter(i => i.source === state.trendingFeedFilter) : state.trendingFeed;
+  $('#trendingfeed-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
+}
+$('#trendingfeed-sources').onclick = e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  $$('#trendingfeed-sources .chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  state.trendingFeedFilter = c.dataset.src;
+  renderTrendingFeed();
 };
 
 // ---------- Emergency Services (live feeds) ----------

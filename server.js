@@ -485,6 +485,18 @@ const EMERGENCY_FEEDS = [
   { name: 'ReliefWeb Disasters', url: 'https://reliefweb.int/disasters/rss.xml' }
 ];
 
+// Trending across the dev community — what's hot right now (live RSS).
+const TRENDING_FEEDS = [
+  { name: 'Hacker News', url: 'https://hnrss.org/frontpage' },
+  { name: 'HN Best', url: 'https://hnrss.org/best' },
+  { name: 'Lobsters', url: 'https://lobste.rs/rss' },
+  { name: 'Dev.to', url: 'https://dev.to/feed' },
+  { name: 'GitHub Trending', url: 'https://mshibanami.github.io/GitHubTrendingRSS/daily/all.xml' },
+  { name: 'Product Hunt', url: 'https://www.producthunt.com/feed' },
+  { name: 'Reddit r/programming', url: 'https://www.reddit.com/r/programming/top/.rss?t=day' },
+  { name: 'Hackaday', url: 'https://hackaday.com/blog/feed/' }
+];
+
 const NEWS_TTL = 10 * 60 * 1000; // 10 minutes
 let newsCache = { items: [], fetchedAt: 0 };
 let healthCache = { items: [], fetchedAt: 0 };
@@ -494,6 +506,7 @@ let courierCache = { items: [], fetchedAt: 0 };
 let weatherCache = { items: [], fetchedAt: 0 };
 let ethicsCache = { items: [], fetchedAt: 0 };
 let emergencyCache = { items: [], fetchedAt: 0 };
+let trendingCache = { items: [], fetchedAt: 0 };
 
 // Aggregate any list of feeds into a single, date-sorted item list.
 async function fetchFeeds(feeds) {
@@ -538,6 +551,7 @@ app.get('/api/courier-news', feedEndpoint(COURIER_FEEDS, () => courierCache, c =
 app.get('/api/weather-news', feedEndpoint(WEATHER_FEEDS, () => weatherCache, c => { weatherCache = c; }));
 app.get('/api/ethics-news', feedEndpoint(ETHICS_FEEDS, () => ethicsCache, c => { ethicsCache = c; }));
 app.get('/api/emergency-news', feedEndpoint(EMERGENCY_FEEDS, () => emergencyCache, c => { emergencyCache = c; }));
+app.get('/api/trending-news', feedEndpoint(TRENDING_FEEDS, () => trendingCache, c => { trendingCache = c; }));
 
 // ---------- Q&A ----------
 app.get('/api/questions', (req, res) => {

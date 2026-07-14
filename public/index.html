@@ -65,6 +65,7 @@
       <div class="nav-group">
         <button type="button" class="nav-group-btn" aria-haspopup="true" aria-expanded="false">News &amp; Feeds <span class="caret" aria-hidden="true">▾</span></button>
         <div class="nav-menu" role="menu">
+          <a href="#trendingfeed" data-nav="trendingfeed" role="menuitem">🔥 Trending</a>
           <a href="#news" data-nav="news" role="menuitem">Tech News</a>
           <a href="#health" data-nav="health" role="menuitem">Health</a>
           <a href="#hospitality" data-nav="hospitality" role="menuitem">Hospitality</a>
@@ -146,7 +147,10 @@
       </div>
     </section>
 
-    <h2 class="section-title">Trending <span class="slash">/</span> On PulseFeed</h2>
+    <div class="split-head">
+      <h2 class="section-title">Trending <span class="slash">/</span> Hot Across Dev</h2>
+      <a href="#trendingfeed" data-nav="trendingfeed" class="see-all">See all →</a>
+    </div>
     <div class="grid-3" id="home-trending"></div>
 
     <h2 class="section-title">Practice &amp; Compete <span class="slash">/</span> Sharpen Your Skills</h2>
@@ -566,6 +570,17 @@
     <div class="chip-row chip-row-cats" id="news-cats"></div>
     <div class="chip-row" id="news-sources"></div>
     <div id="news-list"><p class="muted">Loading feeds…</p></div>
+  </section>
+
+  <!-- TRENDING FEED -->
+  <section id="view-trendingfeed" class="view hidden">
+    <div class="split-head">
+      <h1 class="section-title">Trending <span class="slash">/</span> What's Hot Right Now</h1>
+      <span class="muted" id="trendingfeed-meta"></span>
+    </div>
+    <p class="muted">The hottest stories, repos, and launches across the developer community — aggregated live from Hacker News, GitHub Trending, Lobsters, Dev.to, Product Hunt, Reddit and more. Filter by source below. Every link opens the original.</p>
+    <div class="chip-row" id="trendingfeed-sources"></div>
+    <div id="trendingfeed-list" class="grid-2"><p class="muted">Loading trending feeds…</p></div>
   </section>
 
   <!-- HEALTH -->
