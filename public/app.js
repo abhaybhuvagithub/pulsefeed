@@ -979,7 +979,7 @@ async function loadActiveAds() {
       + `<b>📡 Tech</b> — ${nItems.length} stories · hottest: ${cats.join(', ') || '—'}<ul>${nItems.slice(0, 5).map(li).join('')}</ul>`
       + `<b>🩺 Health</b> — ${hItems.length} stories${hcats.length ? ' · ' + hcats.join(', ') : ''}<ul>${hItems.slice(0, 3).map(li).join('') || '<li class="muted">none</li>'}</ul>`
       + `<b>💬 Community</b> — top question: "${esc(topQ ? topQ.title : '—')}" (${topQ ? topQ.votes : 0} votes)<br>`
-      + `<span class="muted">Try “read in detail”, “health”, or “trending”.</span>`;
+      + `<span class="muted">Try “read in detail”, “weather”, “emergency”, or “open jobs”.</span>`;
     return { html, spoken };
   }, 'I could not reach the feeds.');
 
@@ -1015,13 +1015,66 @@ async function loadActiveAds() {
     return { html: `We cover <b>${names.length}</b> languages:<br>${names.map(n => `<span class="jtag">${esc(n)}</span>`).join(' ')}`, spoken: `We cover ${names.length} languages, including ${names.slice(0, 5).join(', ')}.` };
   }, 'I could not load the languages.');
 
+  // Generic live-feed reader for the newer News & Feeds categories.
+  const topicFeed = (endpoint, label) => run(`Fetching ${label.toLowerCase()}…`, async () => {
+    const d = await jFetch(endpoint); const it = (d.items || []).slice(0, 6);
+    if (!it.length) return { html: `No ${esc(label)} stories are available right now — open the ${esc(label)} page to try again.`, spoken: `No ${label} stories are available right now.` };
+    return { html: `Top ${esc(label)} headlines:<ul>${it.map(li).join('')}</ul>`, spoken: `The top ${label} story: ${(it[0] || {}).title || 'unavailable'}.` };
+  }, `The ${label.toLowerCase()} feeds are unreachable.`);
+
+  // Emergency helpline quick-reference (spoken aloud for fast recall).
+  function emergencyInfo() {
+    const html = `<b>🚑 Emergency helplines — save these</b>`
+      + `<ul><li><b>All-in-one:</b> India <b>112</b> · USA/Canada <b>911</b> · EU <b>112</b></li>`
+      + `<li><b>Ambulance (India):</b> <b>108</b> — or Blinkit's 10-minute ambulance in-app</li>`
+      + `<li><b>Cyber / financial fraud (India):</b> <b>1930</b> · cybercrime.gov.in &nbsp;·&nbsp; report fraud <b>1945</b></li>`
+      + `<li><b>Child helpline:</b> <b>1098</b> &nbsp;·&nbsp; <b>Mental health:</b> Vandrevala 9999666555</li></ul>`
+      + `<span class="muted">Open the Emergency Services page for the full list. In a real emergency, call your local number now.</span>`;
+    say(html, 'For any emergency, dial one one two in India, or nine one one in the U S. For an ambulance in India, dial one zero eight. To report cyber or financial fraud in India, dial one nine three zero.');
+  }
+
+  // Voice/text navigation across the site.
+  const NAV_MAP = [
+    [/\b(home|homepage)\b/, 'home', 'Home'],
+    [/\b(language|languages)\b/, 'languages', 'Languages'],
+    [/\b(learn|tutorial|zero to one|roadmap|dictionar|universit|business)\b/, 'learn', 'Learn'],
+    [/\b(job|jobs|career|hiring|internship)\b/, 'jobs', 'Jobs'],
+    [/\b(forum|forums|thread|discuss)\b/, 'forums', 'Forums'],
+    [/\b(q ?& ?a|q and a|question|questions|ask)\b/, 'qa', 'Q&A'],
+    [/\b(tech news|technology news|headline|news)\b/, 'news', 'Tech News'],
+    [/\b(health|medical)\b/, 'health', 'Health'],
+    [/\b(hospitality|hotel|travel)\b/, 'hospitality', 'Hospitality'],
+    [/\b(transport|transit|metro|railway|train|bus|mobility)\b/, 'transport', 'Public Transport'],
+    [/\b(courier|parcel|logistics|shipping|delivery)\b/, 'courier', 'Courier Services'],
+    [/\b(weather|forecast|climate)\b/, 'weather', 'Weather'],
+    [/\bethic|\bintegrity\b|\bcorruption\b/, 'ethics', 'Ethics & Integrity'],
+    [/\b(emergency|ambulance|helpline)\b/, 'emergency', 'Emergency Services'],
+    [/\b(advertise|advert|sponsor)\b/, 'advertise', 'Advertise']
+  ];
+  function goTo(view, label) {
+    if (typeof nav === 'function') nav(view);
+    say(`Opening <b>${esc(label)}</b> for you.`, `Opening ${label}.`);
+  }
+
+  // A tour of everything the site now offers.
+  function whatsNew() {
+    say(`Here's what CodeBlazeFeed offers:<ul>`
+      + `<li><b>Languages</b> — 21 language guides with deep links</li>`
+      + `<li><b>Learn</b> — roadmaps, dictionaries, top universities &amp; businesses, and tutorial hubs</li>`
+      + `<li><b>Jobs</b> — boards, startups &amp; Indian incubators</li>`
+      + `<li><b>Community</b> — Q&amp;A (with Stack Exchange) and Forums</li>`
+      + `<li><b>News &amp; Feeds</b> — Tech, Health, Hospitality, Public Transport, Courier, Weather, Ethics &amp; Emergency Services</li></ul>`
+      + `<span class="muted">Say “open weather”, “emergency”, or ask about any topic.</span>`,
+      'CodeBlazeFeed covers 21 languages, learning resources, jobs, community, and live feeds for tech, health, hospitality, transport, courier, weather, ethics, and emergency services. Just say open, followed by a section.');
+  }
+
   const search = (q) => run('Searching the feeds…', async () => {
-    const [news, health] = await Promise.all([jFetch('/api/news'), jFetch('/api/health-news')]);
-    const all = (news.items || []).concat(health.items || []);
+    const [news, health, weather, ethics] = await Promise.all([jFetch('/api/news'), jFetch('/api/health-news'), jFetch('/api/weather-news'), jFetch('/api/ethics-news')]);
+    const all = (news.items || []).concat(health.items || [], weather.items || [], ethics.items || []);
     const ql = q.toLowerCase();
     const hits = all.filter(i => (i.title + ' ' + (i.snippet || '')).toLowerCase().includes(ql)).slice(0, 6);
     if (hits.length) return { html: `Here's what I found on "${esc(q)}":<ul>${hits.map(li).join('')}</ul>`, spoken: `I found ${hits.length} stories on ${q}.` };
-    return { html: `I found nothing on "${esc(q)}" in today's feeds. Try “brief me”, “top news”, “health”, or “trending”.`, spoken: `I found nothing on ${q}.` };
+    return { html: `I found nothing on "${esc(q)}" in today's feeds. Try “brief me”, “top news”, “weather”, “emergency”, or “what can you do”.`, spoken: `I found nothing on ${q}.` };
   }, 'The search failed.');
 
   function stopSpeaking() { try { speechSynthesis.cancel(); } catch (e) {} orb.classList.remove('jarvis-speaking'); add('bot', 'Silenced.'); }
@@ -1100,7 +1153,14 @@ async function loadActiveAds() {
   });
 
   function help() {
-    say(`At your command. I can:<ul><li><b>brief me</b> — a full rundown</li><li><b>top news</b> / <b>health</b> — latest headlines</li><li><b>read in detail</b> — top stories with summaries</li><li><b>trending</b> — hottest questions · <b>forums</b> — busiest threads</li><li><b>languages</b> — what we cover</li><li><b>FAQ</b> — common questions &amp; fixes</li><li>ask about a topic (<i>“anything on AI?”</i>) or say <b>stop</b> to silence me</li></ul>`, 'I can brief you, read stories in detail, report on news, health, trending questions, forums, and languages, and answer common questions in the FAQ.');
+    say(`At your command. I can:<ul>`
+      + `<li><b>brief me</b> — a full rundown · <b>read in detail</b> — top stories with summaries</li>`
+      + `<li><b>top news</b> · <b>health</b> · <b>weather</b> · <b>transport</b> · <b>courier</b> · <b>ethics</b> — live headlines</li>`
+      + `<li><b>emergency</b> — key helpline numbers (ambulance, fraud, child &amp; mental-health)</li>`
+      + `<li><b>trending</b> — hottest questions · <b>forums</b> — busiest threads · <b>languages</b> — what we cover</li>`
+      + `<li><b>open &lt;section&gt;</b> — e.g. “open jobs”, “go to weather” — I'll navigate for you</li>`
+      + `<li><b>FAQ</b> — common questions &amp; fixes · <b>what's new</b> — a tour · ask any topic · <b>stop</b> to silence me</li></ul>`,
+      'I can brief you, read live headlines for news, health, weather, transport, courier and ethics, give you emergency helpline numbers, navigate the site when you say open followed by a section, report on trending questions, forums and languages, and answer common questions.');
   }
 
   function route(raw) {
@@ -1108,10 +1168,23 @@ async function loadActiveAds() {
     add('user', esc(q));
     const t = q.toLowerCase();
     if (/\b(stop|silence|quiet|shush|shut up|enough)\b/.test(t)) return stopSpeaking();
-    if (/\b(brief|briefing|report|overview|catch me up|rundown|what'?s (new|up|happening|going on)|good (morning|afternoon|evening)|status)\b/.test(t)) return brief();
+    // Explicit navigation: "open / go to / show me / take me to <section>".
+    if (/\b(open|go to|goto|take me to|show me|navigate|visit)\b/.test(t)) {
+      const m = NAV_MAP.find(([re]) => re.test(t));
+      if (m) return goTo(m[1], m[2]);
+    }
+    if (/\b(what'?s new|what can (you|this)|your (features|capabilities)|sections?|what do you (offer|have)|about (the )?site)\b/.test(t)) return whatsNew();
+    if (/\b(brief|briefing|report|overview|catch me up|rundown|what'?s (up|happening|going on)|good (morning|afternoon|evening)|status)\b/.test(t)) return brief();
     if (/\b(read|in detail|details?|tell me more|more detail|elaborate|summar)\b/.test(t)) return readDetails();
+    // Emergency helplines (numbers, ambulance, fraud) — high priority.
+    if (/\b(emergency|ambulance|helpline|fraud number|police number|fire number|\b112\b|\b911\b|\b108\b|\b1930\b|\b1945\b|\b1098\b)\b/.test(t)) return emergencyInfo();
     if (/\b(language|languages)\b/.test(t)) return languagesInfo();
     if (/\b(health|medical|medicine|disease|wellness)\b/.test(t)) return healthTop();
+    if (/\b(weather|forecast|climate|temperature|rain)\b/.test(t)) return topicFeed('/api/weather-news', 'Weather');
+    if (/\b(transport|transit|metro|railway|\btrain(s)?\b|\bbus(es)?\b|mobility)\b/.test(t)) return topicFeed('/api/transport-news', 'Public Transport');
+    if (/\b(courier|parcel|logistics|shipping|delivery)\b/.test(t)) return topicFeed('/api/courier-news', 'Courier Services');
+    if (/\bethic|\bintegrity\b|\bcorruption\b|responsible (ai|tech)/.test(t)) return topicFeed('/api/ethics-news', 'Ethics & Integrity');
+    if (/\b(hospitality|hotel|travel)\b/.test(t)) return topicFeed('/api/hospitality-news', 'Hospitality');
     if (/\b(trend|question|q ?& ?a|q and a|upvot)\b/.test(t)) return trending();
     if (/\b(forum|thread|discuss)\b/.test(t)) return forumsTop();
     if (/\b(news|headline|top stor|latest)\b/.test(t)) return newsTop();
@@ -1125,7 +1198,7 @@ async function loadActiveAds() {
 
   function open() {
     panel.classList.add('open'); textEl.focus();
-    if (!greeted) { greeted = true; setTimeout(() => say(`${greeting()} GARUDA online. Say “brief me” for today's rundown.`, `${greeting()} Garuda online. How may I assist?`), 250); }
+    if (!greeted) { greeted = true; setTimeout(() => say(`${greeting()} <b>GARUDA</b> online. Say “brief me”, “weather”, “emergency”, or “open jobs” — or ask <b>what can you do</b>.`, `${greeting()} Garuda online. How may I assist?`), 250); }
   }
   function close() { panel.classList.remove('open'); try { speechSynthesis.cancel(); } catch (e) {} orb.classList.remove('jarvis-speaking'); }
   orb.addEventListener('click', () => panel.classList.contains('open') ? close() : open());
@@ -1133,7 +1206,7 @@ async function loadActiveAds() {
   muteBtn.addEventListener('click', () => { muted = !muted; muteBtn.textContent = muted ? '🔇' : '🔊'; try { localStorage.setItem('jarvis-muted', muted ? '1' : '0'); } catch (e) {} if (muted) { try { speechSynthesis.cancel(); } catch (e) {} } });
   form.addEventListener('submit', e => { e.preventDefault(); const v = textEl.value; textEl.value = ''; route(v); });
 
-  [['Brief me', 'brief me'], ['Top news', 'top news'], ['Health', 'health'], ['Trending', 'trending'], ['Forums', 'forums'], ['FAQ', 'faq']].forEach(([label, cmd]) => {
+  [['Brief me', 'brief me'], ['Top news', 'top news'], ['Weather', 'weather'], ['Emergency', 'emergency'], ['Health', 'health'], ['Trending', 'trending'], ['FAQ', 'faq']].forEach(([label, cmd]) => {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = () => route(cmd); quickEl.appendChild(b);
   });
 
