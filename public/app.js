@@ -54,7 +54,6 @@ function nav(view) {
   if (view === 'transport' && !state.transportLoaded) loadTransport();
   if (view === 'courier' && !state.courierLoaded) loadCourier();
   if (view === 'weather' && !state.weatherLoaded) loadWeather();
-  if (view === 'ethics' && !state.ethicsLoaded) loadEthics();
   if (view === 'emergency' && !state.emergencyLoaded) loadEmergency();
   if (view === 'trendingfeed' && !state.trendingFeedLoaded) loadTrendingFeed();
   if (view === 'advertise' && typeof aaStart === 'function' && !AA.started) aaStart();
@@ -120,7 +119,7 @@ function closeMobileNav() {
   });
 })();
 
-const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', health: [], healthLoaded: false, healthFilter: '', healthCategory: '', hospitality: [], hospitalityLoaded: false, hospitalityFilter: '', transport: [], transportLoaded: false, transportFilter: '', courier: [], courierLoaded: false, courierFilter: '', weather: [], weatherLoaded: false, weatherFilter: '', ethics: [], ethicsLoaded: false, ethicsFilter: '', emergency: [], emergencyLoaded: false, emergencyFilter: '', adPkg: null, activeAds: [] };
+const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', health: [], healthLoaded: false, healthFilter: '', healthCategory: '', hospitality: [], hospitalityLoaded: false, hospitalityFilter: '', transport: [], transportLoaded: false, transportFilter: '', courier: [], courierLoaded: false, courierFilter: '', weather: [], weatherLoaded: false, weatherFilter: '', emergency: [], emergencyLoaded: false, emergencyFilter: '', adPkg: null, activeAds: [] };
 
 // ---------- Languages ----------
 async function loadLanguages() {
@@ -1135,7 +1134,6 @@ function initSubscribe() {
     [/\b(transport|transit|metro|railway|train|bus|mobility)\b/, 'transport', 'Public Transport'],
     [/\b(courier|parcel|logistics|shipping|delivery)\b/, 'courier', 'Courier Services'],
     [/\b(weather|forecast|climate)\b/, 'weather', 'Weather'],
-    [/\bethic|\bintegrity\b|\bcorruption\b/, 'ethics', 'Ethics & Integrity'],
     [/\b(emergency|ambulance|helpline)\b/, 'emergency', 'Emergency Services'],
     [/\b(advertise|advert|sponsor)\b/, 'advertise', 'Advertise']
   ];
@@ -1151,13 +1149,13 @@ function initSubscribe() {
       + `<li><b>Learn</b> — roadmaps, dictionaries, top universities &amp; businesses, and tutorial hubs</li>`
       + `<li><b>Jobs</b> — boards, startups &amp; Indian incubators</li>`
       + `<li><b>Community</b> — Q&amp;A (with Stack Exchange) and Forums</li>`
-      + `<li><b>News &amp; Feeds</b> — Tech, Health, Hospitality, Public Transport, Courier, Weather, Ethics &amp; Emergency Services</li></ul>`
+      + `<li><b>News &amp; Feeds</b> — Trending, Tech, Health, Hospitality, Public Transport, Courier, Weather &amp; Emergency Services</li></ul>`
       + `<span class="muted">Say “open weather”, “emergency”, or ask about any topic.</span>`,
-      'PulseFeed covers 21 languages, learning resources, jobs, community, and live feeds for tech, health, hospitality, transport, courier, weather, ethics, and emergency services. Just say open, followed by a section.');
+      'PulseFeed covers 21 languages, learning resources, jobs, community, and live feeds for trending, tech, health, hospitality, transport, courier, weather, and emergency services. Just say open, followed by a section.');
   }
 
   const search = (q) => run('Searching the feeds…', async () => {
-    const eps = ['/api/news', '/api/health-news', '/api/weather-news', '/api/ethics-news', '/api/transport-news', '/api/courier-news', '/api/hospitality-news', '/api/emergency-news'];
+    const eps = ['/api/news', '/api/health-news', '/api/weather-news', '/api/trending-news', '/api/transport-news', '/api/courier-news', '/api/hospitality-news', '/api/emergency-news'];
     const res = await Promise.all(eps.map(e => jFetch(e).catch(() => ({ items: [] }))));
     const all = res.flatMap(r => (r && r.items) || []);
     const ql = q.toLowerCase();
@@ -1244,12 +1242,12 @@ function initSubscribe() {
   function help() {
     say(`At your command. I can:<ul>`
       + `<li><b>brief me</b> — a full rundown · <b>read in detail</b> — top stories with summaries</li>`
-      + `<li><b>top news</b> · <b>health</b> · <b>weather</b> · <b>transport</b> · <b>courier</b> · <b>ethics</b> — live headlines</li>`
+      + `<li><b>top news</b> · <b>health</b> · <b>weather</b> · <b>transport</b> · <b>courier</b> · <b>trending</b> — live headlines</li>`
       + `<li><b>emergency</b> — key helpline numbers (ambulance, fraud, child &amp; mental-health)</li>`
       + `<li><b>trending</b> — hottest questions · <b>forums</b> — busiest threads · <b>languages</b> — what we cover</li>`
       + `<li><b>open &lt;section&gt;</b> — e.g. “open jobs”, “go to weather” — I'll navigate for you</li>`
       + `<li><b>FAQ</b> — common questions &amp; fixes · <b>what's new</b> — a tour · ask any topic · <b>stop</b> to silence me</li></ul>`,
-      'I can brief you, read live headlines for news, health, weather, transport, courier and ethics, give you emergency helpline numbers, navigate the site when you say open followed by a section, report on trending questions, forums and languages, and answer common questions.');
+      'I can brief you, read live headlines for news, health, weather, transport, courier and trending, give you emergency helpline numbers, navigate the site when you say open followed by a section, report on trending questions, forums and languages, and answer common questions.');
   }
 
   // Contextual follow-up suggestions per intent (label, command).
@@ -1263,7 +1261,6 @@ function initSubscribe() {
     emergency: [['Open Emergency', 'open emergency'], ['Ambulance', 'ambulance']],
     transport: [['Open Transport', 'open transport'], ['Courier', 'courier']],
     courier: [['Open Courier', 'open courier'], ['Transport', 'transport']],
-    ethics:  [['Open Ethics', 'open ethics']],
     hospitality: [['Open Hospitality', 'open hospitality']],
     trending: [['Open Q&A', 'open q&a'], ['Forums', 'forums']],
     forums:  [['Open Forums', 'open forums'], ['Open Q&A', 'open q&a']],
@@ -1297,7 +1294,6 @@ function initSubscribe() {
     if (/\b(weather|forecast|climate|temperature|rain)\b/.test(t)) return go('weather', () => topicFeed('/api/weather-news', 'Weather'));
     if (/\b(transport|transit|metro|railway|\btrain(s)?\b|\bbus(es)?\b|mobility)\b/.test(t)) return go('transport', () => topicFeed('/api/transport-news', 'Public Transport'));
     if (/\b(courier|parcel|logistics|shipping|delivery)\b/.test(t)) return go('courier', () => topicFeed('/api/courier-news', 'Courier Services'));
-    if (/\bethic|\bintegrity\b|\bcorruption\b|responsible (ai|tech)/.test(t)) return go('ethics', () => topicFeed('/api/ethics-news', 'Ethics & Integrity'));
     if (/\b(hospitality|hotel|travel)\b/.test(t)) return go('hospitality', () => topicFeed('/api/hospitality-news', 'Hospitality'));
     if (/\b(what'?s hot|hot right now|trending feeds?|trending news|hacker news|github trending|product hunt|lobsters)\b/.test(t)) { suggest([['Open Trending', 'open trending'], ['Read in detail', 'read in detail']]); return topicFeed('/api/trending-news', 'Trending'); }
     if (/\b(trend|question|q ?& ?a|q and a|upvot)\b/.test(t)) return go('trending', trending);
@@ -1483,33 +1479,6 @@ $('#weather-sources').onclick = e => {
   c.classList.add('active');
   state.weatherFilter = c.dataset.src;
   renderWeather();
-};
-
-// ---------- Ethics & Integrity (live feeds) ----------
-async function loadEthics() {
-  try {
-    const data = await api('/api/ethics-news');
-    state.ethics = data.items; state.ethicsLoaded = true;
-    $('#ethics-meta').textContent = data.items.length ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}` : '';
-    const sources = [...new Set(data.items.map(i => i.source))];
-    $('#ethics-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
-      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
-    renderEthics();
-    if (data.failedFeeds?.length) $('#ethics-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
-  } catch (e) {
-    $('#ethics-list').innerHTML = `<p class="muted">Couldn't load ethics feeds (${esc(e.message)}). Reload to try again.</p>`;
-  }
-}
-function renderEthics() {
-  const items = state.ethicsFilter ? state.ethics.filter(i => i.source === state.ethicsFilter) : state.ethics;
-  $('#ethics-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
-}
-$('#ethics-sources').onclick = e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  $$('#ethics-sources .chip').forEach(x => x.classList.remove('active'));
-  c.classList.add('active');
-  state.ethicsFilter = c.dataset.src;
-  renderEthics();
 };
 
 // ---------- Trending (live feeds across the dev community) ----------
@@ -1730,8 +1699,8 @@ $('#emergency-sources').onclick = e => {
   async function run(q) {
     lastQuery = q;
     const ts = terms(q);
-    const [news, health, hosp, transp, courier, weather, ethics, emergency, qs, forums] = await Promise.all([
-      jGet('/api/news'), jGet('/api/health-news'), jGet('/api/hospitality-news'), jGet('/api/transport-news'), jGet('/api/courier-news'), jGet('/api/weather-news'), jGet('/api/ethics-news'), jGet('/api/emergency-news'), jGet('/api/questions'), jGet('/api/forums')
+    const [news, health, hosp, transp, courier, weather, trending, emergency, qs, forums] = await Promise.all([
+      jGet('/api/news'), jGet('/api/health-news'), jGet('/api/hospitality-news'), jGet('/api/transport-news'), jGet('/api/courier-news'), jGet('/api/weather-news'), jGet('/api/trending-news'), jGet('/api/emergency-news'), jGet('/api/questions'), jGet('/api/forums')
     ]);
     if (input.value.trim().toLowerCase() !== q) return; // superseded by a newer keystroke
     const feed = data => ((data && data.items) || []).filter(i => matches(ts, i.title, i.snippet || '')).slice(0, 5)
@@ -1745,7 +1714,7 @@ $('#emergency-sources').onclick = e => {
       { name: 'Public Transport', icon: '🚆', items: feed(transp) },
       { name: 'Courier Services', icon: '📦', items: feed(courier) },
       { name: 'Weather', icon: '🌦️', items: feed(weather) },
-      { name: 'Ethics & Integrity', icon: '⚖️', items: feed(ethics) },
+      { name: 'Trending', icon: '🔥', items: feed(trending) },
       { name: 'Emergency Services', icon: '🚑', items: feed(emergency) },
       { name: 'Q&A', icon: '💬', items: (qs || []).filter(x => matches(ts, x.title, x.body)).slice(0, 5)
         .map(x => ({ title: x.title, sub: '▲ ' + x.votes + ' · ' + x.answers.length + ' answers', navTo: 'qa' })) },

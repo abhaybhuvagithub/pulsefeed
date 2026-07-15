@@ -461,18 +461,6 @@ const WEATHER_FEEDS = [
   { name: 'The Watchers', url: 'https://watchers.news/feed/' }
 ];
 
-// Ethics, integrity & responsible-tech news (live RSS).
-const ETHICS_FEEDS = [
-  { name: 'Ethics Unwrapped', url: 'https://ethicsunwrapped.utexas.edu/feed' },
-  { name: 'Markkula Center', url: 'https://www.scu.edu/ethics/all-about-ethics/rss/' },
-  { name: 'The Ethics Centre', url: 'https://ethics.org.au/feed/' },
-  { name: 'AlgorithmWatch', url: 'https://algorithmwatch.org/en/feed/' },
-  { name: 'Montreal AI Ethics', url: 'https://montrealethics.ai/feed/' },
-  { name: 'FCPA Blog', url: 'https://fcpablog.com/feed/' },
-  { name: 'Transparency Intl', url: 'https://www.transparency.org/en/rss' },
-  { name: 'MIT Tech Review Ethics', url: 'https://www.technologyreview.com/topic/policy/feed' }
-];
-
 // Emergency services, disaster response & public-safety news (live RSS).
 const EMERGENCY_FEEDS = [
   { name: 'ReliefWeb', url: 'https://reliefweb.int/updates/rss.xml' },
@@ -504,7 +492,6 @@ let hospitalityCache = { items: [], fetchedAt: 0 };
 let transportCache = { items: [], fetchedAt: 0 };
 let courierCache = { items: [], fetchedAt: 0 };
 let weatherCache = { items: [], fetchedAt: 0 };
-let ethicsCache = { items: [], fetchedAt: 0 };
 let emergencyCache = { items: [], fetchedAt: 0 };
 let trendingCache = { items: [], fetchedAt: 0 };
 
@@ -549,7 +536,6 @@ app.get('/api/hospitality-news', feedEndpoint(HOSPITALITY_FEEDS, () => hospitali
 app.get('/api/transport-news', feedEndpoint(TRANSPORT_FEEDS, () => transportCache, c => { transportCache = c; }));
 app.get('/api/courier-news', feedEndpoint(COURIER_FEEDS, () => courierCache, c => { courierCache = c; }));
 app.get('/api/weather-news', feedEndpoint(WEATHER_FEEDS, () => weatherCache, c => { weatherCache = c; }));
-app.get('/api/ethics-news', feedEndpoint(ETHICS_FEEDS, () => ethicsCache, c => { ethicsCache = c; }));
 app.get('/api/emergency-news', feedEndpoint(EMERGENCY_FEEDS, () => emergencyCache, c => { emergencyCache = c; }));
 app.get('/api/trending-news', feedEndpoint(TRENDING_FEEDS, () => trendingCache, c => { trendingCache = c; }));
 
