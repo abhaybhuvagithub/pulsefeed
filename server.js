@@ -370,11 +370,14 @@ function validateBooking(pkg, campaign) {
 }
 
 // ---------- RSS news ----------
-// Browser-like User-Agent so larger publishers (Medium, Business Insider,
-// Gartner, etc.) don't reject the default feed request.
+// Real browser User-Agent so publishers behind WAFs/Cloudflare (Met Office,
+// NOAA, Mayo Clinic, Gartner, etc.) don't reject the feed request as a bot.
 const parser = new Parser({
-  timeout: 12000,
-  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PulseFeedBot/1.0; +https://codeblaze-eng9.onrender.com)' }
+  timeout: 15000,
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*'
+  }
 });
 const FEEDS = [
   { name: 'Hacker News', url: 'https://hnrss.org/frontpage' },
@@ -399,80 +402,6 @@ const FEEDS = [
   { name: 'Semiconductor Engineering', url: 'https://semiengineering.com/feed/' }
 ];
 
-// Top health & medical news sources (live RSS).
-const HEALTH_FEEDS = [
-  { name: 'ScienceDaily Health', url: 'https://www.sciencedaily.com/rss/health_medicine.xml' },
-  { name: 'Medical Xpress', url: 'https://medicalxpress.com/rss-feed/' },
-  { name: 'NPR Health', url: 'https://feeds.npr.org/1128/rss.xml' },
-  { name: 'KFF Health News', url: 'https://kffhealthnews.org/feed/' },
-  { name: 'STAT News', url: 'https://www.statnews.com/feed/' },
-  { name: 'WHO', url: 'https://www.who.int/rss-feeds/news-english.xml' },
-  { name: 'Healthline', url: 'https://www.healthline.com/rss/health-news' },
-  { name: 'Mayo Clinic', url: 'https://newsnetwork.mayoclinic.org/feed/' },
-  { name: 'MedlinePlus', url: 'https://medlineplus.gov/feeds/news_en.xml' },
-  { name: 'NIH Director', url: 'https://directorsblog.nih.gov/feed/' }
-];
-
-// Top hospitality, hotel & travel-industry news sources (live RSS).
-const HOSPITALITY_FEEDS = [
-  { name: 'Skift', url: 'https://skift.com/feed/' },
-  { name: 'PhocusWire', url: 'https://www.phocuswire.com/rss' },
-  { name: 'Lodging Magazine', url: 'https://lodgingmagazine.com/feed/' },
-  { name: 'eHotelier', url: 'https://insights.ehotelier.com/feed/' },
-  { name: 'Hospitality Net', url: 'https://www.hospitalitynet.org/rss/global.xml' },
-  { name: 'Hotel Management', url: 'https://www.hotelmanagement.net/rss.xml' },
-  { name: 'The Points Guy', url: 'https://thepointsguy.com/feed/' },
-  { name: 'Travel + Leisure', url: 'https://www.travelandleisure.com/feeds/all.rss' }
-];
-
-// Public transport, transit & mobility news (live RSS).
-const TRANSPORT_FEEDS = [
-  { name: 'Intelligent Transport', url: 'https://www.intelligenttransport.com/feed/' },
-  { name: 'Railway Technology', url: 'https://www.railway-technology.com/feed/' },
-  { name: 'Global Railway Review', url: 'https://www.globalrailwayreview.com/feed/' },
-  { name: 'Railway Gazette', url: 'https://www.railwaygazette.com/rss' },
-  { name: 'Streetsblog USA', url: 'https://usa.streetsblog.org/feed/' },
-  { name: 'Mass Transit', url: 'https://www.masstransitmag.com/rss' },
-  { name: 'Metro Rail News', url: 'https://www.metrorailnews.in/feed/' },
-  { name: 'Smart Cities Dive', url: 'https://www.smartcitiesdive.com/feeds/news/' }
-];
-
-// Courier, parcel & logistics news (live RSS).
-const COURIER_FEEDS = [
-  { name: 'Post & Parcel', url: 'https://postandparcel.info/feed/' },
-  { name: 'Parcel & Postal Tech Intl', url: 'https://www.parcelandpostaltechnologyinternational.com/feed' },
-  { name: 'The Loadstar', url: 'https://theloadstar.com/feed/' },
-  { name: 'Logistics Manager', url: 'https://www.logisticsmanager.com/feed/' },
-  { name: 'Supply Chain Dive', url: 'https://www.supplychaindive.com/feeds/news/' },
-  { name: 'FreightWaves', url: 'https://www.freightwaves.com/feed' },
-  { name: 'Air Cargo News', url: 'https://www.aircargonews.net/feed/' },
-  { name: 'Parcel Industry', url: 'https://parcelindustry.com/rss.xml' }
-];
-
-// Weather & climate news (live RSS).
-const WEATHER_FEEDS = [
-  { name: 'NOAA News', url: 'https://www.noaa.gov/news-releases.xml' },
-  { name: 'NWS Bulletins', url: 'https://www.weather.gov/rss_page.php?site_name=nws' },
-  { name: 'Met Office', url: 'https://weather.metoffice.gov.uk/feeds/rss' },
-  { name: 'Severe Weather Europe', url: 'https://www.severe-weather.eu/feed/' },
-  { name: 'Watts Up With That', url: 'https://wattsupwiththat.com/feed/' },
-  { name: 'Yale Climate Connections', url: 'https://yaleclimateconnections.org/feed/' },
-  { name: 'Carbon Brief', url: 'https://www.carbonbrief.org/feed/' },
-  { name: 'The Watchers', url: 'https://watchers.news/feed/' }
-];
-
-// Emergency services, disaster response & public-safety news (live RSS).
-const EMERGENCY_FEEDS = [
-  { name: 'ReliefWeb', url: 'https://reliefweb.int/updates/rss.xml' },
-  { name: 'GDACS Alerts', url: 'https://www.gdacs.org/xml/rss.xml' },
-  { name: 'EMS1', url: 'https://www.ems1.com/rss/' },
-  { name: 'FireRescue1', url: 'https://www.firerescue1.com/rss/' },
-  { name: 'Fire Engineering', url: 'https://www.fireengineering.com/feed/' },
-  { name: 'JEMS', url: 'https://www.jems.com/feed/' },
-  { name: 'Homeland Security Today', url: 'https://www.hstoday.us/feed/' },
-  { name: 'ReliefWeb Disasters', url: 'https://reliefweb.int/disasters/rss.xml' }
-];
-
 // Trending across the dev community — what's hot right now (live RSS).
 const TRENDING_FEEDS = [
   { name: 'Hacker News', url: 'https://hnrss.org/frontpage' },
@@ -487,12 +416,6 @@ const TRENDING_FEEDS = [
 
 const NEWS_TTL = 10 * 60 * 1000; // 10 minutes
 let newsCache = { items: [], fetchedAt: 0 };
-let healthCache = { items: [], fetchedAt: 0 };
-let hospitalityCache = { items: [], fetchedAt: 0 };
-let transportCache = { items: [], fetchedAt: 0 };
-let courierCache = { items: [], fetchedAt: 0 };
-let weatherCache = { items: [], fetchedAt: 0 };
-let emergencyCache = { items: [], fetchedAt: 0 };
 let trendingCache = { items: [], fetchedAt: 0 };
 
 // Aggregate any list of feeds into a single, date-sorted item list.
@@ -531,12 +454,6 @@ function feedEndpoint(feeds, getCache, setCache) {
 }
 
 app.get('/api/news', feedEndpoint(FEEDS, () => newsCache, c => { newsCache = c; }));
-app.get('/api/health-news', feedEndpoint(HEALTH_FEEDS, () => healthCache, c => { healthCache = c; }));
-app.get('/api/hospitality-news', feedEndpoint(HOSPITALITY_FEEDS, () => hospitalityCache, c => { hospitalityCache = c; }));
-app.get('/api/transport-news', feedEndpoint(TRANSPORT_FEEDS, () => transportCache, c => { transportCache = c; }));
-app.get('/api/courier-news', feedEndpoint(COURIER_FEEDS, () => courierCache, c => { courierCache = c; }));
-app.get('/api/weather-news', feedEndpoint(WEATHER_FEEDS, () => weatherCache, c => { weatherCache = c; }));
-app.get('/api/emergency-news', feedEndpoint(EMERGENCY_FEEDS, () => emergencyCache, c => { emergencyCache = c; }));
 app.get('/api/trending-news', feedEndpoint(TRENDING_FEEDS, () => trendingCache, c => { trendingCache = c; }));
 
 // ---------- Q&A ----------

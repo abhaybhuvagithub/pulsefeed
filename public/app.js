@@ -49,12 +49,6 @@ function nav(view) {
   $$('.nav-group').forEach(g => g.classList.toggle('has-active', !!g.querySelector('a.active')));
   window.scrollTo({ top: 0 });
   if (view === 'news' && !state.newsLoaded) loadNews();
-  if (view === 'health' && !state.healthLoaded) loadHealth();
-  if (view === 'hospitality' && !state.hospitalityLoaded) loadHospitality();
-  if (view === 'transport' && !state.transportLoaded) loadTransport();
-  if (view === 'courier' && !state.courierLoaded) loadCourier();
-  if (view === 'weather' && !state.weatherLoaded) loadWeather();
-  if (view === 'emergency' && !state.emergencyLoaded) loadEmergency();
   if (view === 'trendingfeed' && !state.trendingFeedLoaded) loadTrendingFeed();
   if (view === 'advertise' && typeof aaStart === 'function' && !AA.started) aaStart();
 }
@@ -119,7 +113,7 @@ function closeMobileNav() {
   });
 })();
 
-const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', health: [], healthLoaded: false, healthFilter: '', healthCategory: '', hospitality: [], hospitalityLoaded: false, hospitalityFilter: '', transport: [], transportLoaded: false, transportFilter: '', courier: [], courierLoaded: false, courierFilter: '', weather: [], weatherLoaded: false, weatherFilter: '', emergency: [], emergencyLoaded: false, emergencyFilter: '', adPkg: null, activeAds: [] };
+const state = { languages: [], questions: [], news: [], newsLoaded: false, newsFilter: '', newsCategory: '', adPkg: null, activeAds: [] };
 
 // ---------- Languages ----------
 async function loadLanguages() {
@@ -380,77 +374,6 @@ $('#news-sources').onclick = e => {
   renderNews();
 };
 
-// ---------- Health news ----------
-// Classify each health story into a topic from its title + snippet.
-const HEALTH_CAT_ORDER = ['Research & Discovery', 'Diseases & Conditions', 'Mental Health', 'Nutrition & Fitness', 'Medicine & Treatment', 'Public Health & Policy', 'General Health'];
-const HEALTH_CAT_ICON = { 'Research & Discovery': '🔬', 'Diseases & Conditions': '🩺', 'Mental Health': '🧠', 'Nutrition & Fitness': '🥗', 'Medicine & Treatment': '💊', 'Public Health & Policy': '🏛️', 'General Health': '❤️' };
-const HEALTH_CAT_RULES = [
-  ['Mental Health', /\b(mental health|anxiety|depress|psycholog|psychiatr|well-?being|burnout|mindful|\bptsd\b|suicid|loneliness|\bbrain\b)\b/i],
-  ['Nutrition & Fitness', /\b(nutrition|diet|dietary|food|eating|obesity|weight|exercise|fitness|workout|\bsleep\b|calorie|vitamin|supplement|protein|sugar)\b/i],
-  ['Diseases & Conditions', /\b(cancer|diabet|heart|cardio|stroke|alzheimer|dementia|covid|influenza|\bflu\b|virus|infection|disease|disorder|asthma|arthritis|hypertension|tumou?r|parasite|measles)\b/i],
-  ['Medicine & Treatment', /\b(drug|treatment|therap|medication|vaccine|surger|clinical trial|\bfda\b|approval|antibiotic|gene[- ]editing|transplant)\b/i],
-  ['Public Health & Policy', /\b(public health|policy|\bwho\b|\bcdc\b|outbreak|epidemic|pandemic|health ?care|insurance|medicaid|medicare|hospital|regulat|equity|access to care)\b/i],
-  ['Research & Discovery', /\b(stud(y|ies)|research|scientist|discover|finding|trial|experiment|breakthrough|evidence|linked to|may (help|reduce|cause))\b/i]
-];
-function healthCategory(i) {
-  const t = (i.title || '') + ' ' + (i.snippet || '');
-  for (const [cat, re] of HEALTH_CAT_RULES) if (re.test(t)) return cat;
-  return 'General Health';
-}
-
-async function loadHealth() {
-  try {
-    const data = await api('/api/health-news');
-    state.health = data.items;
-    state.healthLoaded = true;
-    $('#health-meta').textContent = data.items.length
-      ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}`
-      : '';
-    const sources = [...new Set(data.items.map(i => i.source))];
-    $('#health-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
-      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
-    const present = HEALTH_CAT_ORDER.filter(c => data.items.some(i => healthCategory(i) === c));
-    $('#health-cats').innerHTML = `<button class="chip active" data-cat="">All topics</button>` +
-      present.map(c => `<button class="chip" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
-    renderHealth();
-    if (data.failedFeeds?.length) $('#health-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
-  } catch (e) {
-    $('#health-list').innerHTML = `<p class="muted">Couldn't load health feeds (${esc(e.message)}). Reload to try again.</p>`;
-  }
-}
-function renderHealth() {
-  let items = state.healthFilter ? state.health.filter(i => i.source === state.healthFilter) : state.health;
-  if (!items.length) { $('#health-list').innerHTML = '<p class="muted">No stories.</p>'; return; }
-  if (state.healthCategory) {
-    const list = items.filter(i => healthCategory(i) === state.healthCategory).slice(0, 60);
-    $('#health-list').innerHTML = list.length
-      ? `<div class="grid-2">${list.map(newsCard).join('')}</div>`
-      : '<p class="muted">No stories in this topic right now.</p>';
-    return;
-  }
-  const groups = {};
-  items.forEach(i => { (groups[healthCategory(i)] ||= []).push(i); });
-  const html = HEALTH_CAT_ORDER.filter(c => groups[c] && groups[c].length).map(c => `
-    <section class="news-cat-block">
-      <h2 class="news-cat-title">${HEALTH_CAT_ICON[c]} ${esc(c)} <span>${groups[c].length}</span></h2>
-      <div class="grid-2">${groups[c].slice(0, 12).map(newsCard).join('')}</div>
-    </section>`).join('');
-  $('#health-list').innerHTML = html || '<p class="muted">No stories.</p>';
-}
-$('#health-sources').onclick = e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  $$('#health-sources .chip').forEach(x => x.classList.remove('active'));
-  c.classList.add('active');
-  state.healthFilter = c.dataset.src;
-  renderHealth();
-};
-$('#health-cats').onclick = e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  $$('#health-cats .chip').forEach(x => x.classList.remove('active'));
-  c.classList.add('active');
-  state.healthCategory = c.dataset.cat;
-  renderHealth();
-};
 $('#news-cats').onclick = e => {
   const c = e.target.closest('.chip'); if (!c) return;
   $$('#news-cats .chip').forEach(x => x.classList.remove('active'));
@@ -1036,18 +959,17 @@ function initSubscribe() {
   }
 
   const brief = () => run('Scanning the feeds…', async () => {
-    const [news, health, qs] = await Promise.all([jFetch('/api/news'), jFetch('/api/health-news'), jFetch('/api/questions')]);
-    const nItems = news.items || [], hItems = health.items || [];
+    const [news, trending, qs] = await Promise.all([jFetch('/api/news'), jFetch('/api/trending-news'), jFetch('/api/questions')]);
+    const nItems = news.items || [], tItems = trending.items || [];
     const cats = topCats(nItems, newsCategory).slice(0, 3).map(([c, n]) => `${c} (${n})`);
-    const hcats = topCats(hItems, healthCategory).slice(0, 2).map(([c]) => c);
     const topQ = (qs || []).slice().sort((a, b) => b.votes - a.votes)[0];
     const g = greeting();
-    const spoken = `${g} Here is your briefing. I am tracking ${nItems.length} technology stories and ${hItems.length} health stories. The most active topics are ${cats.join(', ') || 'various'}. Today's leading headline: ${(nItems[0] || {}).title || 'unavailable'}.`;
+    const spoken = `${g} Here is your briefing. I am tracking ${nItems.length} technology stories and ${tItems.length} trending items. The most active topics are ${cats.join(', ') || 'various'}. Today's leading headline: ${(nItems[0] || {}).title || 'unavailable'}.`;
     const html = `<strong>${g}</strong> Here's your briefing:<br><br>`
       + `<b>📡 Tech</b> — ${nItems.length} stories · hottest: ${cats.join(', ') || '—'}<ul>${nItems.slice(0, 5).map(li).join('')}</ul>`
-      + `<b>🩺 Health</b> — ${hItems.length} stories${hcats.length ? ' · ' + hcats.join(', ') : ''}<ul>${hItems.slice(0, 3).map(li).join('') || '<li class="muted">none</li>'}</ul>`
+      + `<b>🔥 Trending</b> — ${tItems.length} items<ul>${tItems.slice(0, 3).map(li).join('') || '<li class="muted">none</li>'}</ul>`
       + `<b>💬 Community</b> — top question: "${esc(topQ ? topQ.title : '—')}" (${topQ ? topQ.votes : 0} votes)<br>`
-      + `<span class="muted">Try “read in detail”, “weather”, “emergency”, or “open jobs”.</span>`;
+      + `<span class="muted">Try “read in detail”, “top news”, “trending”, or “open jobs”.</span>`;
     return { html, spoken };
   }, 'I could not reach the feeds.');
 
@@ -1055,11 +977,6 @@ function initSubscribe() {
     const d = await jFetch('/api/news'); const it = (d.items || []).slice(0, 6);
     return { html: `Top technology headlines:<ul>${it.map(li).join('')}</ul>`, spoken: `The top headline is: ${(it[0] || {}).title || 'unavailable'}.` };
   }, 'The feeds are unreachable.');
-
-  const healthTop = () => run('Fetching health…', async () => {
-    const d = await jFetch('/api/health-news'); const it = (d.items || []).slice(0, 6);
-    return { html: `Top health headlines:<ul>${it.map(li).join('')}</ul>`, spoken: `The leading health story: ${(it[0] || {}).title || 'unavailable'}.` };
-  }, 'The health feeds are unreachable.');
 
   const readDetails = () => run('Reading the top stories…', async () => {
     const d = await jFetch('/api/news'); const it = (d.items || []).slice(0, 3);
@@ -1107,34 +1024,16 @@ function initSubscribe() {
     return { html, spoken };
   }, 'I could not load that language.');
 
-  // Emergency helpline quick-reference (spoken aloud for fast recall).
-  function emergencyInfo() {
-    const html = `<b>🚑 Emergency helplines — save these</b>`
-      + `<ul><li><b>All-in-one:</b> India <b>112</b> · USA/Canada <b>911</b> · EU <b>112</b></li>`
-      + `<li><b>Ambulance (India):</b> <b>108</b> — or Blinkit's 10-minute ambulance in-app</li>`
-      + `<li><b>Cyber / financial fraud (India):</b> <b>1930</b> · cybercrime.gov.in &nbsp;·&nbsp; report fraud <b>1945</b></li>`
-      + `<li><b>Child helpline:</b> <b>1098</b> &nbsp;·&nbsp; <b>Mental health:</b> Vandrevala 9999666555</li></ul>`
-      + `<span class="muted">Open the Emergency Services page for the full list. In a real emergency, call your local number now.</span>`;
-    say(html, 'For any emergency, dial one one two in India, or nine one one in the U S. For an ambulance in India, dial one zero eight. To report cyber or financial fraud in India, dial one nine three zero.');
-  }
-
   // Voice/text navigation across the site.
   const NAV_MAP = [
     [/\b(home|homepage)\b/, 'home', 'Home'],
     [/\b(language|languages)\b/, 'languages', 'Languages'],
-    [/\b(learn|tutorial|zero to one|roadmap|dictionar|universit|business)\b/, 'learn', 'Learn'],
+    [/\b(learn|tutorial|zero to one|roadmap)\b/, 'learn', 'Learn'],
     [/\b(job|jobs|career|hiring|internship)\b/, 'jobs', 'Jobs'],
     [/\b(forum|forums|thread|discuss)\b/, 'forums', 'Forums'],
     [/\b(q ?& ?a|q and a|question|questions|ask)\b/, 'qa', 'Q&A'],
     [/\b(trending|what'?s hot|hot right now)\b/, 'trendingfeed', 'Trending'],
     [/\b(tech news|technology news|headline|news)\b/, 'news', 'Tech News'],
-    [/\b(health|medical)\b/, 'health', 'Health'],
-    [/\b(hospitality|hotel|travel)\b/, 'hospitality', 'Hospitality'],
-    [/\b(pilgrim|pilgrimage|palace|palaces|temple|shrine|heritage|dham|yatra)\b/, 'pilgrimpalace', 'Pilgrimage & Palaces'],
-    [/\b(transport|transit|metro|railway|train|bus|mobility)\b/, 'transport', 'Public Transport'],
-    [/\b(courier|parcel|logistics|shipping|delivery)\b/, 'courier', 'Courier Services'],
-    [/\b(weather|forecast|climate)\b/, 'weather', 'Weather'],
-    [/\b(emergency|ambulance|helpline)\b/, 'emergency', 'Emergency Services'],
     [/\b(advertise|advert|sponsor)\b/, 'advertise', 'Advertise']
   ];
   function goTo(view, label) {
@@ -1146,22 +1045,22 @@ function initSubscribe() {
   function whatsNew() {
     say(`Here's what PulseFeed offers:<ul>`
       + `<li><b>Languages</b> — 21 language guides with deep links</li>`
-      + `<li><b>Learn</b> — roadmaps, dictionaries, top universities &amp; businesses, and tutorial hubs</li>`
+      + `<li><b>Learn</b> — roadmaps, DSA, system design, and tutorial hubs</li>`
       + `<li><b>Jobs</b> — boards, startups &amp; Indian incubators</li>`
       + `<li><b>Community</b> — Q&amp;A (with Stack Exchange) and Forums</li>`
-      + `<li><b>News &amp; Feeds</b> — Trending, Tech, Health, Hospitality, Public Transport, Courier, Weather &amp; Emergency Services</li></ul>`
-      + `<span class="muted">Say “open weather”, “emergency”, or ask about any topic.</span>`,
-      'PulseFeed covers 21 languages, learning resources, jobs, community, and live feeds for trending, tech, health, hospitality, transport, courier, weather, and emergency services. Just say open, followed by a section.');
+      + `<li><b>News &amp; Feeds</b> — Trending &amp; Tech News</li></ul>`
+      + `<span class="muted">Say “open trending”, “top news”, or ask about any topic.</span>`,
+      'PulseFeed covers 21 languages, learning resources, jobs, community, and live feeds for trending and tech news. Just say open, followed by a section.');
   }
 
   const search = (q) => run('Searching the feeds…', async () => {
-    const eps = ['/api/news', '/api/health-news', '/api/weather-news', '/api/trending-news', '/api/transport-news', '/api/courier-news', '/api/hospitality-news', '/api/emergency-news'];
+    const eps = ['/api/news', '/api/trending-news'];
     const res = await Promise.all(eps.map(e => jFetch(e).catch(() => ({ items: [] }))));
     const all = res.flatMap(r => (r && r.items) || []);
     const ql = q.toLowerCase();
     const hits = all.filter(i => (i.title + ' ' + (i.snippet || '')).toLowerCase().includes(ql)).slice(0, 6);
     if (hits.length) return { html: `Here's what I found on "${esc(q)}":<ul>${hits.map(li).join('')}</ul>`, spoken: `I found ${hits.length} stories on ${q}.` };
-    return { html: `I found nothing on "${esc(q)}" in today's feeds. Try “brief me”, “top news”, “weather”, “emergency”, or “what can you do”.`, spoken: `I found nothing on ${q}.` };
+    return { html: `I found nothing on "${esc(q)}" in today's feeds. Try “brief me”, “top news”, “trending”, or “what can you do”.`, spoken: `I found nothing on ${q}.` };
   }, 'The search failed.');
 
   function stopSpeaking() { try { speechSynthesis.cancel(); } catch (e) {} orb.classList.remove('jarvis-speaking'); add('bot', 'Silenced.'); }
@@ -1182,7 +1081,7 @@ function initSubscribe() {
       s: `Use the sun and moon toggle at the top right. Your choice is remembered.` },
     { q: 'How do I search the site?',
       k: ['search', 'find something', 'search bar', 'look for', 'how to search'],
-      a: `Use the <b>search bar</b> at the top of every page — or press <b>/</b> (or <b>⌘K</b> / Ctrl+K) anywhere. It searches news, health, hospitality, Q&amp;A, forums, languages and resources at once. Use ↑ ↓ then ↵ to open a result.`,
+      a: `Use the <b>search bar</b> at the top of every page — or press <b>/</b> (or <b>⌘K</b> / Ctrl+K) anywhere. It searches news, trending, Q&amp;A, forums, languages and resources at once. Use ↑ ↓ then ↵ to open a result.`,
       s: `Use the search bar at the top of every page, or press the slash key. It searches everything at once.` },
     { q: 'How many languages do you cover, and where are the tips?',
       k: ['language', 'languages', 'tips', 'cheat sheet', 'snippet', 'deep link', 'resources'],
@@ -1196,10 +1095,6 @@ function initSubscribe() {
       k: ['ask a question', 'post a question', 'q&a', 'q and a', 'stack exchange', 'stack overflow', 'ask'],
       a: `Open <b>Q&amp;A</b> → <b>Ask Question</b> to post to the community. The <b>Stack Exchange · Live</b> tab also pulls real answers from Stack Overflow, Super User, Server Fault, Ask Ubuntu and more.`,
       s: `Open Q and A and tap Ask Question. The Stack Exchange live tab also searches Stack Overflow and its sister sites.` },
-    { q: 'Where are Health and Hospitality news?',
-      k: ['health', 'hospitality', 'medical', 'hotel', 'travel', 'wellness'],
-      a: `They have their own menus: <b>Health</b> (ScienceDaily, WHO, NPR, Mayo Clinic and more) and <b>Hospitality</b> (Skift, PhocusWire, Hotel Management and more), each grouped by topic with live feeds.`,
-      s: `They each have their own menu — Health and Hospitality — with live feeds grouped by topic.` },
     { q: 'The site is not showing my latest changes',
       k: ['not showing', 'not updating', 'stale', 'cache', 'old version', 'cant see', 'cannot see', 'refresh'],
       a: `That is browser caching. Do a hard refresh — <b>Ctrl+Shift+R</b> (Windows/Linux) or <b>Cmd+Shift+R</b> (Mac). The site now version-stamps its files on every deploy, so a normal reload should stay current.`,
@@ -1214,8 +1109,8 @@ function initSubscribe() {
       s: `The site is for personal study and research. Please do not repost it commercially without permission.` },
     { q: 'How do I use you, GARUDA?',
       k: ['how to use', 'use you', 'your commands', 'what can you do', 'guide me'],
-      a: `Ask me for a <b>brief</b>, <b>top news</b>, <b>health</b>, <b>trending</b> questions, <b>forums</b>, or <b>languages</b> — or ask about any topic (<i>“anything on AI?”</i>). Tap <b>FAQ</b> for common questions, or say <b>stop</b> to silence me.`,
-      s: `Ask me for a brief, top news, health, trending, forums, or languages. Or tap FAQ for common questions.` }
+      a: `Ask me for a <b>brief</b>, <b>top news</b>, <b>trending</b>, <b>forums</b>, or <b>languages</b> — or ask about any topic (<i>“anything on AI?”</i>). Tap <b>FAQ</b> for common questions, or say <b>stop</b> to silence me.`,
+      s: `Ask me for a brief, top news, trending, forums, or languages. Or tap FAQ for common questions.` }
   ];
   function faqList() {
     say(`Frequently asked questions — tap one, or just ask:<ul class="jfaq">${FAQS.map((f, i) => `<li><a href="#" data-faq="${i}">${esc(f.q)}</a></li>`).join('')}</ul>`,
@@ -1242,26 +1137,19 @@ function initSubscribe() {
   function help() {
     say(`At your command. I can:<ul>`
       + `<li><b>brief me</b> — a full rundown · <b>read in detail</b> — top stories with summaries</li>`
-      + `<li><b>top news</b> · <b>health</b> · <b>weather</b> · <b>transport</b> · <b>courier</b> · <b>trending</b> — live headlines</li>`
-      + `<li><b>emergency</b> — key helpline numbers (ambulance, fraud, child &amp; mental-health)</li>`
+      + `<li><b>top news</b> · <b>trending</b> — live headlines from tech &amp; the dev community</li>`
       + `<li><b>trending</b> — hottest questions · <b>forums</b> — busiest threads · <b>languages</b> — what we cover</li>`
-      + `<li><b>open &lt;section&gt;</b> — e.g. “open jobs”, “go to weather” — I'll navigate for you</li>`
+      + `<li><b>open &lt;section&gt;</b> — e.g. “open jobs”, “go to trending” — I'll navigate for you</li>`
       + `<li><b>FAQ</b> — common questions &amp; fixes · <b>what's new</b> — a tour · ask any topic · <b>stop</b> to silence me</li></ul>`,
-      'I can brief you, read live headlines for news, health, weather, transport, courier and trending, give you emergency helpline numbers, navigate the site when you say open followed by a section, report on trending questions, forums and languages, and answer common questions.');
+      'I can brief you, read live headlines for tech news and trending, navigate the site when you say open followed by a section, report on trending questions, forums and languages, and answer common questions.');
   }
 
   // Contextual follow-up suggestions per intent (label, command).
-  // These never repeat the always-visible quick bar (brief me, top news, weather,
-  // emergency, health, trending, faq) — they surface deeper, context-specific paths.
+  // These never repeat the always-visible quick bar (brief me, top news, trending, faq)
+  // — they surface deeper, context-specific paths.
   const SUG = {
     brief:   [['Read in detail', 'read in detail'], ['Anything on AI?', 'anything on AI']],
     news:    [['Read in detail', 'read in detail'], ['Anything on AI?', 'anything on AI'], ['Open Tech News', 'open tech news']],
-    weather: [['Open Weather', 'open weather']],
-    health:  [['Open Health', 'open health']],
-    emergency: [['Open Emergency', 'open emergency'], ['Ambulance', 'ambulance']],
-    transport: [['Open Transport', 'open transport'], ['Courier', 'courier']],
-    courier: [['Open Courier', 'open courier'], ['Transport', 'transport']],
-    hospitality: [['Open Hospitality', 'open hospitality']],
     trending: [['Open Q&A', 'open q&a'], ['Forums', 'forums']],
     forums:  [['Open Forums', 'open forums'], ['Open Q&A', 'open q&a']],
     languages: [['About Python', 'tell me about python'], ['About Rust', 'tell me about rust'], ['Open Languages', 'open languages']],
@@ -1288,13 +1176,7 @@ function initSubscribe() {
     if (/\b(what'?s new|what can (you|this)|your (features|capabilities)|sections?|what do you (offer|have)|about (the )?site)\b/.test(t)) return go('def', whatsNew);
     if (/\b(brief|briefing|report|overview|catch me up|rundown|what'?s (up|happening|going on)|good (morning|afternoon|evening)|status)\b/.test(t)) return go('brief', brief);
     if (/\b(read|in detail|details?|tell me more|more detail|elaborate|summar)\b/.test(t)) return go('news', readDetails);
-    if (/\b(emergency|ambulance|helpline|fraud number|police number|fire number|\b112\b|\b911\b|\b108\b|\b1930\b|\b1945\b|\b1098\b)\b/.test(t)) return go('emergency', emergencyInfo);
     if (/\b(language|languages)\b/.test(t)) return go('languages', languagesInfo);
-    if (/\b(health|medical|medicine|disease|wellness)\b/.test(t)) return go('health', healthTop);
-    if (/\b(weather|forecast|climate|temperature|rain)\b/.test(t)) return go('weather', () => topicFeed('/api/weather-news', 'Weather'));
-    if (/\b(transport|transit|metro|railway|\btrain(s)?\b|\bbus(es)?\b|mobility)\b/.test(t)) return go('transport', () => topicFeed('/api/transport-news', 'Public Transport'));
-    if (/\b(courier|parcel|logistics|shipping|delivery)\b/.test(t)) return go('courier', () => topicFeed('/api/courier-news', 'Courier Services'));
-    if (/\b(hospitality|hotel|travel)\b/.test(t)) return go('hospitality', () => topicFeed('/api/hospitality-news', 'Hospitality'));
     if (/\b(what'?s hot|hot right now|trending feeds?|trending news|hacker news|github trending|product hunt|lobsters)\b/.test(t)) { suggest([['Open Trending', 'open trending'], ['Read in detail', 'read in detail']]); return topicFeed('/api/trending-news', 'Trending'); }
     if (/\b(trend|question|q ?& ?a|q and a|upvot)\b/.test(t)) return go('trending', trending);
     if (/\b(forum|thread|discuss)\b/.test(t)) return go('forums', forumsTop);
@@ -1309,7 +1191,7 @@ function initSubscribe() {
 
   function open() {
     panel.classList.add('open'); textEl.focus();
-    if (!greeted) { greeted = true; suggest(SUG.def); setTimeout(() => say(`${greeting()} <b>GARUDA</b> online. Say “brief me”, “weather”, “emergency”, or “open jobs” — or tap a suggestion below.`, `${greeting()} Garuda online. How may I assist?`), 250); }
+    if (!greeted) { greeted = true; suggest(SUG.def); setTimeout(() => say(`${greeting()} <b>GARUDA</b> online. Say “brief me”, “top news”, “trending”, or “open jobs” — or tap a suggestion below.`, `${greeting()} Garuda online. How may I assist?`), 250); }
   }
   function close() { panel.classList.remove('open'); try { speechSynthesis.cancel(); } catch (e) {} orb.classList.remove('jarvis-speaking'); }
   orb.addEventListener('click', () => panel.classList.contains('open') ? close() : open());
@@ -1335,7 +1217,7 @@ function initSubscribe() {
     if (e.key === 'ArrowUp' && !textEl.value && lastUserMsg) { e.preventDefault(); textEl.value = lastUserMsg; textEl.select(); }
   });
 
-  [['Brief me', 'brief me'], ['Top news', 'top news'], ['Weather', 'weather'], ['Emergency', 'emergency'], ['Health', 'health'], ['Trending', 'trending'], ['FAQ', 'faq']].forEach(([label, cmd]) => {
+  [['Brief me', 'brief me'], ['Top news', 'top news'], ['Trending', 'trending'], ['Forums', 'forums'], ['Languages', 'languages'], ['FAQ', 'faq']].forEach(([label, cmd]) => {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = () => route(cmd); quickEl.appendChild(b);
   });
 
@@ -1370,116 +1252,6 @@ function initSubscribe() {
   });
 })();
 
-// ---------- Hospitality feeds ----------
-async function loadHospitality() {
-  try {
-    const data = await api('/api/hospitality-news');
-    state.hospitality = data.items;
-    state.hospitalityLoaded = true;
-    $('#hosp-meta').textContent = data.items.length
-      ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}`
-      : '';
-    const sources = [...new Set(data.items.map(i => i.source))];
-    $('#hosp-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
-      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
-    renderHospitality();
-    if (data.failedFeeds?.length) $('#hosp-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
-  } catch (e) {
-    $('#hosp-list').innerHTML = `<p class="muted">Couldn't load hospitality feeds (${esc(e.message)}). Reload to try again.</p>`;
-  }
-}
-function renderHospitality() {
-  const items = state.hospitalityFilter ? state.hospitality.filter(i => i.source === state.hospitalityFilter) : state.hospitality;
-  $('#hosp-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
-}
-$('#hosp-sources').onclick = e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  $$('#hosp-sources .chip').forEach(x => x.classList.remove('active'));
-  c.classList.add('active');
-  state.hospitalityFilter = c.dataset.src;
-  renderHospitality();
-};
-
-// ---------- Public Transport (live feeds) ----------
-async function loadTransport() {
-  try {
-    const data = await api('/api/transport-news');
-    state.transport = data.items; state.transportLoaded = true;
-    $('#transport-meta').textContent = data.items.length ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}` : '';
-    const sources = [...new Set(data.items.map(i => i.source))];
-    $('#transport-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
-      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
-    renderTransport();
-    if (data.failedFeeds?.length) $('#transport-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
-  } catch (e) {
-    $('#transport-list').innerHTML = `<p class="muted">Couldn't load transport feeds (${esc(e.message)}). Reload to try again.</p>`;
-  }
-}
-function renderTransport() {
-  const items = state.transportFilter ? state.transport.filter(i => i.source === state.transportFilter) : state.transport;
-  $('#transport-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
-}
-$('#transport-sources').onclick = e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  $$('#transport-sources .chip').forEach(x => x.classList.remove('active'));
-  c.classList.add('active');
-  state.transportFilter = c.dataset.src;
-  renderTransport();
-};
-
-// ---------- Courier Services (live feeds) ----------
-async function loadCourier() {
-  try {
-    const data = await api('/api/courier-news');
-    state.courier = data.items; state.courierLoaded = true;
-    $('#courier-meta').textContent = data.items.length ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}` : '';
-    const sources = [...new Set(data.items.map(i => i.source))];
-    $('#courier-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
-      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
-    renderCourier();
-    if (data.failedFeeds?.length) $('#courier-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
-  } catch (e) {
-    $('#courier-list').innerHTML = `<p class="muted">Couldn't load courier feeds (${esc(e.message)}). Reload to try again.</p>`;
-  }
-}
-function renderCourier() {
-  const items = state.courierFilter ? state.courier.filter(i => i.source === state.courierFilter) : state.courier;
-  $('#courier-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
-}
-$('#courier-sources').onclick = e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  $$('#courier-sources .chip').forEach(x => x.classList.remove('active'));
-  c.classList.add('active');
-  state.courierFilter = c.dataset.src;
-  renderCourier();
-};
-
-// ---------- Weather (live feeds) ----------
-async function loadWeather() {
-  try {
-    const data = await api('/api/weather-news');
-    state.weather = data.items; state.weatherLoaded = true;
-    $('#weather-meta').textContent = data.items.length ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}` : '';
-    const sources = [...new Set(data.items.map(i => i.source))];
-    $('#weather-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
-      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
-    renderWeather();
-    if (data.failedFeeds?.length) $('#weather-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
-  } catch (e) {
-    $('#weather-list').innerHTML = `<p class="muted">Couldn't load weather feeds (${esc(e.message)}). Reload to try again.</p>`;
-  }
-}
-function renderWeather() {
-  const items = state.weatherFilter ? state.weather.filter(i => i.source === state.weatherFilter) : state.weather;
-  $('#weather-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
-}
-$('#weather-sources').onclick = e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  $$('#weather-sources .chip').forEach(x => x.classList.remove('active'));
-  c.classList.add('active');
-  state.weatherFilter = c.dataset.src;
-  renderWeather();
-};
 
 // ---------- Trending (live feeds across the dev community) ----------
 async function loadTrendingFeed() {
@@ -1508,32 +1280,6 @@ $('#trendingfeed-sources').onclick = e => {
   renderTrendingFeed();
 };
 
-// ---------- Emergency Services (live feeds) ----------
-async function loadEmergency() {
-  try {
-    const data = await api('/api/emergency-news');
-    state.emergency = data.items; state.emergencyLoaded = true;
-    $('#emergency-meta').textContent = data.items.length ? `${data.items.length} stories · updated ${timeAgo(data.fetchedAt)}` : '';
-    const sources = [...new Set(data.items.map(i => i.source))];
-    $('#emergency-sources').innerHTML = `<button class="chip active" data-src="">All sources</button>` +
-      sources.map(s => `<button class="chip" data-src="${esc(s)}">${esc(s)}</button>`).join('');
-    renderEmergency();
-    if (data.failedFeeds?.length) $('#emergency-meta').textContent += ` · unavailable: ${data.failedFeeds.join(', ')}`;
-  } catch (e) {
-    $('#emergency-list').innerHTML = `<p class="muted">Couldn't load emergency feeds (${esc(e.message)}). Reload to try again.</p>`;
-  }
-}
-function renderEmergency() {
-  const items = state.emergencyFilter ? state.emergency.filter(i => i.source === state.emergencyFilter) : state.emergency;
-  $('#emergency-list').innerHTML = items.slice(0, 60).map(newsCard).join('') || '<p class="muted">No stories.</p>';
-}
-$('#emergency-sources').onclick = e => {
-  const c = e.target.closest('.chip'); if (!c) return;
-  $$('#emergency-sources .chip').forEach(x => x.classList.remove('active'));
-  c.classList.add('active');
-  state.emergencyFilter = c.dataset.src;
-  renderEmergency();
-};
 
 // ---------- Home page live clock ----------
 (function initClock() {
@@ -1560,9 +1306,8 @@ $('#emergency-sources').onclick = e => {
 
   const slides = [
     { kicker: 'Your Pulse on Code, News & Knowledge', title: 'Code harder. Ship faster. Stay sharp.', dek: 'Tips & tricks for 21 languages, community Q&A, developer forums, and live tech news from the world’s top feeds.' },
-    { kicker: 'Live Tech News', title: 'Never miss what ships.', dek: '19 live feeds across AI, dev, electronics & comms, business, security and science — organized by topic and refreshed continuously.' },
-    { kicker: 'Health & Medical', title: 'Stay informed. Stay well.', dek: 'Top health and medical news, grouped by topic from ScienceDaily, WHO, NPR, STAT and more.' },
-    { kicker: 'Hospitality & Travel', title: 'Book. Stay. Explore.', dek: 'Top booking and hotel platforms — Booking.com, Airbnb, Marriott — plus live hospitality-industry news.' },
+    { kicker: 'Live Tech News', title: 'Never miss what ships.', dek: 'Live feeds across AI, dev, electronics & comms, security and science — organized by topic and refreshed continuously.' },
+    { kicker: 'Trending in Dev', title: "See what's hot right now.", dek: 'The hottest stories, repos and launches from Hacker News, GitHub Trending, Lobsters, Dev.to and more.' },
     { kicker: 'Jobs & Careers', title: 'Find your next role.', dek: 'Top global job boards, tech & startup roles, remote-first work, and the world’s biggest staffing firms.' },
     { kicker: 'Practice & Compete', title: 'Sharpen your edge.', dek: 'LeetCode, NeetCode, Codeforces and ICPC — crack interviews and climb the competitive-programming ranks.' }
   ];
@@ -1699,8 +1444,8 @@ $('#emergency-sources').onclick = e => {
   async function run(q) {
     lastQuery = q;
     const ts = terms(q);
-    const [news, health, hosp, transp, courier, weather, trending, emergency, qs, forums] = await Promise.all([
-      jGet('/api/news'), jGet('/api/health-news'), jGet('/api/hospitality-news'), jGet('/api/transport-news'), jGet('/api/courier-news'), jGet('/api/weather-news'), jGet('/api/trending-news'), jGet('/api/emergency-news'), jGet('/api/questions'), jGet('/api/forums')
+    const [news, trending, qs, forums] = await Promise.all([
+      jGet('/api/news'), jGet('/api/trending-news'), jGet('/api/questions'), jGet('/api/forums')
     ]);
     if (input.value.trim().toLowerCase() !== q) return; // superseded by a newer keystroke
     const feed = data => ((data && data.items) || []).filter(i => matches(ts, i.title, i.snippet || '')).slice(0, 5)
@@ -1709,13 +1454,7 @@ $('#emergency-sources').onclick = e => {
       { name: 'Resources', icon: '🔗', items: resourceCards().filter(r => matches(ts, r.title, r.desc)).slice(0, 6)
         .map(r => ({ title: r.title, sub: r.desc.slice(0, 70), href: r.href, ext: true })) },
       { name: 'Tech News', icon: '📡', items: feed(news) },
-      { name: 'Health', icon: '🩺', items: feed(health) },
-      { name: 'Hospitality', icon: '🏨', items: feed(hosp) },
-      { name: 'Public Transport', icon: '🚆', items: feed(transp) },
-      { name: 'Courier Services', icon: '📦', items: feed(courier) },
-      { name: 'Weather', icon: '🌦️', items: feed(weather) },
       { name: 'Trending', icon: '🔥', items: feed(trending) },
-      { name: 'Emergency Services', icon: '🚑', items: feed(emergency) },
       { name: 'Q&A', icon: '💬', items: (qs || []).filter(x => matches(ts, x.title, x.body)).slice(0, 5)
         .map(x => ({ title: x.title, sub: '▲ ' + x.votes + ' · ' + x.answers.length + ' answers', navTo: 'qa' })) },
       { name: 'Forums', icon: '🗣️', items: (forums || []).filter(t => matches(ts, t.title, t.category)).slice(0, 5)
